@@ -2273,25 +2273,32 @@ document.getElementById('btnConnectSync').addEventListener('click', async () => 
   // Config 파싱
   let config;
   try {
-    // 객체 표기법도 받아주기 (key: "value" 형식)
-    let cleanText = configText;
-    if (!cleanText.startsWith('{')) {
-      cleanText = '{' + cleanText.replace(/^[^{]*/, '').replace(/[^}]*$/, '') + '}';
+    // 1. { ... } 부분만 추출 (앞뒤 const, ;, 줄바꿈 등 제거)
+    const firstBrace = configText.indexOf('{');
+    const lastBrace = configText.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) {
+      return showToast('❌ 중괄호 { } 가 없어요. Firebase Config 통째로 복사하세요');
     }
-    // 1. JSON 시도
+    let extracted = configText.substring(firstBrace, lastBrace + 1);
+
+    // 2. JSON으로 시도
     try {
-      config = JSON.parse(cleanText);
-    } catch(e) {
-      // 2. JS 객체 형식이면 변환 시도
-      const jsLike = cleanText
-        .replace(/(\w+)\s*:/g, '"$1":')  // key: → "key":
-        .replace(/'/g, '"')              // ' → "
-        .replace(/,\s*}/g, '}')          // 마지막 콤마 제거
-        .replace(/,\s*]/g, ']');
-      config = JSON.parse(jsLike);
+      config = JSON.parse(extracted);
+    } catch(e1) {
+      // 3. JS 객체 형식 → JSON 변환 (key 따옴표 추가, 작은따옴표 → 큰따옴표)
+      const jsonLike = extracted
+        .replace(/([{,]\s*)([a-zA-Z_$][\w$]*)\s*:/g, '$1"$2":')  // key: → "key":
+        .replace(/'/g, '"')                                       // ' → "
+        .replace(/,(\s*[}\]])/g, '$1');                          // 마지막 콤마 제거
+      try {
+        config = JSON.parse(jsonLike);
+      } catch(e2) {
+        console.error('Config 파싱 실패:', e2, '\n원본:', configText, '\n추출:', extracted);
+        return showToast('❌ Config 형식이 잘못됐어요. JSON 형식으로 입력해보세요');
+      }
     }
   } catch(e) {
-    return showToast('❌ Config 형식이 잘못됐어요. 통째로 복사했는지 확인');
+    return showToast('❌ Config 처리 중 오류: ' + e.message);
   }
 
   // 필수 필드 체크
@@ -4077,7 +4084,13 @@ function buildAssistantPrompt(context, query) {
   const todayStr = today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
   const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-  let prompt = `당신은 사용자의 "라이프 OS" 통합 비서입니다. 사용자의 가족 관리, 임신/육아, 건강, 가계, 일정 데이터를 모두 알고 있습니다. 친근하고 따뜻한 말투로 구체적이고 도움되는 답변을 해주세요.
+  let prompt = `당신은 사용자의 "라이프 OS" 통합 비서입니다.
+
+⚠️⚠️⚠️ 절대 규칙 (반드시 지킬 것) ⚠️⚠️⚠️
+1. 아래 [데이터] 섹션에 명시된 정보만 사용하세요. 데이터에 없는 일정/사건/장소/사람을 절대 만들어내지 마세요.
+2. [OOO], [XXX], [○○○], [가족], [공원] 같은 빈 칸 형식의 가짜 정보를 절대 답변에 포함하지 마세요.
+3. 데이터가 "(없음)" 또는 "(등록된 ~ 없음)"이라고 적혀 있으면, 사용자에게 "아직 등록된 ~이 없네요"라고 솔직히 답변하세요.
+4. 일정, 가계부, 자녀 정보 등을 추측하거나 상상하지 마세요. 사용자에게 정확한 정보가 필요합니다.
 
 [현재 시점]
 ${todayStr}, ${timeStr}
@@ -4134,18 +4147,21 @@ ${todayStr}, ${timeStr}
   }
 
   // 일정
+  prompt += `[일정 데이터]\n`;
   if (context.events && context.events.length > 0) {
-    prompt += `[다가오는 일정 (2주)]\n`;
+    prompt += `다가오는 2주간 일정:\n`;
     context.events.slice(0, 10).forEach(e => {
       prompt += `- ${e.date}${e.time ? ' ' + e.time : ''}: ${e.icon || ''} ${e.title}\n`;
     });
-    prompt += '\n';
+  } else {
+    prompt += `(등록된 일정 없음 - 사용자가 아직 일정을 추가하지 않았습니다)\n`;
   }
+  prompt += '\n';
 
   // 가계부
-  if (context.gagebu) {
+  prompt += `[가계부 데이터 (이번 달)]\n`;
+  if (context.gagebu && (context.gagebu.thisMonth.expense > 0 || context.gagebu.thisMonth.income > 0)) {
     const g = context.gagebu;
-    prompt += `[가계부 (이번 달)]\n`;
     if (g.thisMonth.expense > 0) {
       prompt += `- 지출: ${(g.thisMonth.expense / 10000).toFixed(0)}만원`;
       if (g.thisMonth.income > 0) prompt += ` / 수입: ${(g.thisMonth.income / 10000).toFixed(0)}만원`;
@@ -4154,8 +4170,10 @@ ${todayStr}, ${timeStr}
     if (g.topCategories.length > 0) {
       prompt += `- 주요 지출: ${g.topCategories.slice(0,3).map(([cat, amt]) => `${cat} ${(amt/10000).toFixed(0)}만원`).join(', ')}\n`;
     }
-    prompt += '\n';
+  } else {
+    prompt += `(이번 달 등록된 가계부 항목 없음)\n`;
   }
+  prompt += '\n';
 
   // 여행
   if (context.travel && context.travel.upcoming.length > 0) {
@@ -4210,11 +4228,13 @@ ${query}
 
 [답변 규칙]
 - 한국어로 친근하게 (반말은 피하고 존댓말)
-- 위 데이터를 자연스럽게 인용
+- ⚠️ 위 데이터에 명시된 정보만 사용. 절대 데이터를 만들어내지 마세요
+- ⚠️ 데이터가 "(없음)"이면 솔직히 "아직 등록된 ~이 없어요"라고 답변
+- ⚠️ [OOO], [XXX] 같은 가짜 빈칸 정보 절대 금지
 - 임산부/산모 배려 (관련 시)
 - 구체적이고 실용적인 조언
-- 너무 길지 않게 (보통 3-7문장, 필요시 목록)
-- 데이터에 없는 내용은 추측하지 말고 일반 정보로`;
+- 너무 길지 않게 (보통 3-7문장)
+- 데이터에 없는 분야는 일반적인 조언으로`;
 
   return prompt;
 }
