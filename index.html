@@ -1,0 +1,4191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리집 라이프 OS</title>
+<style>
+:root {
+  --primary: #4F7CFF;
+  --text: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --border: #E2E8F0;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --income: #22C55E;
+  --expense: #EF4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+.hero {
+  background: linear-gradient(135deg, #4F7CFF 0%, #6366F1 100%);
+  color: #fff;
+  padding: 22px 24px;
+  border-radius: 20px;
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+.hero-info { position: relative; z-index: 1; }
+.hero-greet {
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.hero-date {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  margin-top: 4px;
+}
+
+.hero-assistant {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+.hero-assistant input {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: rgba(255,255,255,0.95);
+  color: var(--text);
+  outline: none;
+  min-width: 0;
+}
+.hero-assistant input::placeholder { color: var(--text-tertiary); }
+.hero-assistant input:focus { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.4); }
+.hero-assistant-btn {
+  background: #fff;
+  color: var(--primary);
+  border: none;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.hero-assistant-btn:hover { background: rgba(255,255,255,0.9); transform: translateY(-1px); }
+.hero-assistant-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .hero { padding: 18px 18px; }
+  .hero-title { font-size: 19px; }
+  .hero-assistant { flex-direction: column; }
+  .hero-assistant-btn { padding: 9px; }
+}
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 24px 4px 12px;
+}
+
+/* === 일정 달력 (컴팩트) === */
+.calendar-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 6px;
+}
+.cal-month-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  flex: 1;
+  text-align: center;
+}
+.cal-nav-btn {
+  background: var(--bg);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.cal-nav-btn:hover { background: var(--border); }
+.cal-today-btn, .cal-notif-btn {
+  font-size: 10.5px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.cal-today-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.cal-notif-btn:hover { background: var(--bg); }
+.cal-notif-btn.on {
+  background: #ECFDF5;
+  border-color: #10B981;
+  color: #047857;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  margin-bottom: 4px;
+}
+.cal-day-name {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 4px 0 2px;
+  letter-spacing: 0.05em;
+}
+.cal-day-name.sun { color: #EF4444; }
+.cal-day-name.sat { color: #3B82F6; }
+
+.cal-day {
+  position: relative;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 4px 0 2px;
+  transition: all 0.12s;
+  font-weight: 500;
+  color: var(--text);
+}
+.cal-day:hover { background: var(--bg); }
+.cal-day.other-month { color: var(--text-tertiary); opacity: 0.35; }
+.cal-day.today {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.cal-day.today:hover { filter: brightness(1.05); }
+.cal-day.selected:not(.today) {
+  box-shadow: 0 0 0 2px var(--primary) inset;
+  background: rgba(79,124,255,0.08);
+}
+.cal-day.sun:not(.today):not(.other-month) { color: #EF4444; }
+.cal-day.sat:not(.today):not(.other-month) { color: #3B82F6; }
+
+.cal-event-dots {
+  display: flex;
+  gap: 1.5px;
+  margin-top: 1px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+.cal-event-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.cal-day-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cal-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.cal-detail-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cal-detail-sub {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+.cal-event-list { display: flex; flex-direction: column; gap: 5px; }
+.cal-event-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 7px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-event-item:hover { background: #EEF2FF; }
+.cal-event-item.read-only { cursor: default; }
+.cal-event-item.read-only:hover { background: var(--bg); }
+.cal-event-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.cal-event-content { flex: 1; min-width: 0; }
+.cal-event-title {
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+  font-size: 12px;
+}
+.cal-event-meta {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+.cal-event-source {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(79,124,255,0.1);
+  color: var(--primary);
+  margin-left: 4px;
+  font-weight: 500;
+}
+.cal-event-source.travel { background: rgba(245,158,11,0.12); color: #B45309; }
+.cal-event-source.pregnancy, .cal-event-source.kids, .cal-event-source.birthday { background: #FCE7F3; color: #BE185D; }
+.cal-event-source.manual { background: rgba(79,124,255,0.12); color: var(--primary); }
+
+.cal-add-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.cal-add-btn {
+  flex: 1;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.cal-add-btn:hover {
+  background: rgba(79,124,255,0.05);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.cal-add-btn.ai {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px dashed #F59E0B;
+  color: #92400E;
+}
+.cal-add-btn.ai:hover {
+  background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%);
+  border-color: #D97706;
+  color: #78350F;
+}
+
+.cal-empty {
+  text-align: center;
+  padding: 14px 12px;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+}
+
+/* 오늘/내일 알림 카드 */
+.notif-banner {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid #F59E0B;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  position: relative;
+}
+.notif-banner-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #92400E;
+  padding: 2px 6px;
+  line-height: 1;
+}
+.notif-banner-day {
+  font-size: 11px;
+  font-weight: 700;
+  color: #78350F;
+  margin-bottom: 4px;
+}
+.notif-banner-item {
+  font-size: 12px;
+  color: #92400E;
+  padding: 2px 0;
+}
+.notif-banner-item .time {
+  color: #78350F;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* 일정 추가/수정 모달 */
+.event-modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.5);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
+  backdrop-filter: blur(2px);
+}
+.event-modal-bg.show { display: flex; }
+.event-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.event-modal h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.event-modal .field { margin-bottom: 12px; }
+.event-modal .field label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.event-modal .field input,
+.event-modal .field textarea,
+.event-modal .field select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.event-modal .field input:focus,
+.event-modal .field textarea:focus,
+.event-modal .field select:focus { border-color: var(--primary); }
+.event-modal .field textarea { resize: vertical; min-height: 60px; }
+.event-modal .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.event-modal .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.event-modal .actions-left { margin-right: auto; }
+.event-modal .btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-family: inherit;
+  color: var(--text);
+}
+.event-modal .btn:hover { background: var(--bg); }
+.event-modal .btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.event-modal .btn.primary:hover { filter: brightness(0.95); }
+.event-modal .btn.danger {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+.event-modal .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.event-icon-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.event-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.event-icon-btn.selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.natural-result-card {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 10px;
+}
+.natural-result-card .nrc-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #047857;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.natural-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.natural-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(245,158,11,0.2);
+  border-top-color: #F59E0B;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 600px) {
+  .cal-day { height: 32px; font-size: 11px; padding: 3px 0 1px; }
+  .cal-event-dot { width: 3.5px; height: 3.5px; }
+  .calendar-card { padding: 12px; }
+  .cal-event-item { padding: 6px 9px; }
+}
+
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.module-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.18s;
+  cursor: pointer;
+}
+.module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  border-color: #C7D2FE;
+}
+.module-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.module-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.module-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.module-stat {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.module-stat strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.coming-soon {
+  opacity: 0.55;
+  cursor: not-allowed;
+  position: relative;
+}
+.coming-soon::after {
+  content: '준비 중';
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  background: #FEF3C7;
+  color: #92400E;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.coming-soon:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border);
+}
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  padding: 20px 0;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+@media (max-width: 600px) {
+  .app { padding: 20px 16px; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .quick-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== 날씨 컴팩트 카드 ===== */
+.weather-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.weather-card.loading { padding: 14px; text-align: center; color: var(--text-tertiary); font-size: 12px; }
+
+/* 한 줄에 모든 핵심 정보 */
+.weather-row1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.weather-row1 .icon { font-size: 30px; line-height: 1; flex-shrink: 0; }
+.weather-row1 .main { display: flex; align-items: baseline; gap: 6px; }
+.weather-row1 .temp { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.weather-row1 .desc { font-size: 12px; color: var(--text-secondary); }
+.weather-row1 .range { font-size: 11px; color: var(--text-tertiary); margin-left: 4px; }
+.weather-row1 .rain {
+  margin-left: auto;
+  background: #FEF3C7;
+  color: #78350F;
+  border: 1px solid #FCD34D;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.weather-row1 .rain.no-rain {
+  background: #ECFDF5;
+  color: #065F46;
+  border-color: #6EE7B7;
+}
+.weather-row1 .loc-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.weather-row1 .loc-btn:hover { background: var(--bg); color: var(--text); }
+
+/* 시간대별 가로 스크롤 */
+.weather-hourly {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 8px 0 2px;
+  margin-top: 8px;
+  scrollbar-width: thin;
+  border-top: 1px solid var(--border);
+}
+.weather-hourly::-webkit-scrollbar { height: 3px; }
+.weather-hourly::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.hourly-cell {
+  flex-shrink: 0;
+  min-width: 48px;
+  text-align: center;
+  background: var(--bg);
+  border-radius: 7px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid transparent;
+}
+.hourly-cell.rain { background: #DBEAFE; border-color: #93C5FD; }
+.hourly-cell.now { background: #FEF3C7; border-color: #FCD34D; font-weight: 600; }
+.hourly-cell .time { font-size: 10px; color: var(--text-tertiary); }
+.hourly-cell.now .time { color: #78350F; }
+.hourly-cell .ic { font-size: 15px; line-height: 1; }
+.hourly-cell .t { font-size: 11px; font-weight: 600; }
+.hourly-cell .p { font-size: 9.5px; color: #2563EB; }
+.hourly-cell.rain .p { font-weight: 700; }
+
+@media (max-width: 600px) {
+  .weather-row1 { gap: 8px; }
+  .weather-row1 .icon { font-size: 26px; }
+  .weather-row1 .temp { font-size: 18px; }
+  .weather-row1 .rain { font-size: 10.5px; padding: 3px 7px; }
+  .hourly-cell { min-width: 44px; }
+}
+
+/* ===== 빠른 도구 (AI 검색, 맛집) ===== */
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.quick-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.quick-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.quick-icon {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.quick-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.quick-desc {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.ai-search .quick-icon { background: linear-gradient(135deg, #818CF8, #6366F1); }
+.food-search .quick-icon { background: linear-gradient(135deg, #F59E0B, #EF4444); }
+
+#aiSearchInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--bg);
+  margin-bottom: 10px;
+  outline: none;
+}
+#aiSearchInput:focus { border-color: var(--primary); background: #fff; }
+
+.ai-buttons, .food-categories {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-btn, .food-cat {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.ai-btn:hover, .food-cat:hover { background: var(--bg); border-color: var(--text-tertiary); }
+.ai-btn:disabled, .food-cat:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.food-categories { margin-bottom: 10px; }
+
+/* 검색 버튼 + 인라인 답변 */
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.search-row input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: var(--bg);
+}
+.search-row input:focus { border-color: var(--primary); background: #fff; }
+.search-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: filter 0.15s;
+  white-space: nowrap;
+}
+.search-btn:hover { filter: brightness(0.95); }
+.search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.ai-answer {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+.answer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.answer-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.answer-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  padding: 0 6px;
+  line-height: 1;
+}
+.answer-close:hover { color: var(--text); }
+.answer-body {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.answer-body p { margin: 0; }
+.answer-body p + p { margin-top: 8px; }
+.answer-body code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.answer-body pre {
+  background: rgba(0,0,0,0.05);
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.answer-body pre code { background: none; padding: 0; }
+.answer-body strong { font-weight: 700; }
+.answer-body a { color: var(--primary); text-decoration: none; }
+.answer-body a:hover { text-decoration: underline; }
+.answer-loading {
+  display: flex;
+  gap: 5px;
+  padding: 4px 0;
+  align-items: center;
+}
+.answer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: typing 1.4s infinite;
+}
+.answer-dot:nth-child(2) { animation-delay: 0.2s; }
+.answer-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* 외부 링크 */
+.external-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.external-label {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-right: 2px;
+}
+.ext-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.ext-btn:hover { background: var(--bg); color: var(--text); }
+
+/* 세부 카테고리 모달 */
+.subcat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+.subcat-btn {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 12px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all 0.15s;
+  color: var(--text);
+}
+.subcat-btn:hover {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+  color: #92400E;
+}
+.subcat-modal h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.subcat-modal .sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.find-loc-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s;
+}
+.find-loc-btn:hover { filter: brightness(0.95); }
+.find-loc-btn.locating { background: var(--text-secondary); }
+.find-loc-btn.found { background: #10B981; }
+
+.location-services {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.location-services.show { display: flex; }
+.svc-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.svc-btn {
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  transition: all 0.15s;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.svc-btn:hover { background: var(--bg); }
+
+/* 매장 리스트 */
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+.place-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #FAFBFC;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.place-card:hover {
+  background: #F1F5F9;
+  border-color: var(--text-tertiary);
+}
+.place-rank {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.place-rank.medal { font-size: 16px; }
+.place-info {
+  flex: 1;
+  min-width: 0;
+}
+.place-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-meta {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-distance {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.places-empty, .places-loading, .places-warn {
+  text-align: center;
+  padding: 14px 12px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  margin: 10px 0;
+}
+.places-warn {
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+  border-radius: 8px;
+  text-align: left;
+  line-height: 1.6;
+}
+.places-warn .btn-inline {
+  background: #F59E0B;
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-left: 6px;
+}
+.external-services {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.external-services .label {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.toast-mini {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.toast-mini.show { opacity: 1; }
+
+/* ===== AI 채팅 모달 ===== */
+.ai-settings-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+.ai-settings-btn:hover { background: var(--bg); }
+
+.ai-modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: none; z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+.ai-modal-bg.show { display: flex; }
+.ai-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  height: 80vh;
+  max-height: 720px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+}
+.ai-modal-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ai-tabs { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.ai-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.ai-tab:hover { background: var(--bg); }
+.ai-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.chat-action-btn {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: inherit;
+  white-space: nowrap;
+}
+.chat-action-btn:hover { background: var(--bg); color: var(--text); }
+.ai-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--text-tertiary);
+  padding: 0 8px;
+  line-height: 1;
+}
+.ai-modal-close:hover { color: var(--text); }
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+  background: var(--bg);
+}
+.chat-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-tertiary);
+}
+.chat-empty .big { font-size: 48px; margin-bottom: 12px; }
+.chat-empty .label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.chat-empty .sub { font-size: 12px; }
+
+.chat-msg {
+  margin-bottom: 14px;
+  max-width: 85%;
+  display: flex;
+  flex-direction: column;
+}
+.chat-msg.user { margin-left: auto; align-items: flex-end; }
+.chat-msg.assistant { margin-right: auto; align-items: flex-start; }
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+.chat-msg.user .chat-bubble {
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-msg.assistant .chat-bubble {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble p { margin: 0; }
+.chat-bubble p + p { margin-top: 8px; }
+.chat-bubble code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: 'Menlo', 'Consolas', monospace;
+}
+.chat-msg.user .chat-bubble code { background: rgba(255,255,255,0.2); }
+.chat-bubble pre {
+  background: rgba(0,0,0,0.05);
+  padding: 10px 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.chat-msg.user .chat-bubble pre { background: rgba(255,255,255,0.15); }
+.chat-bubble pre code { background: none; padding: 0; }
+.chat-bubble a { color: inherit; text-decoration: underline; }
+.chat-msg .meta {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.chat-input-area {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  background: #fff;
+  flex-shrink: 0;
+}
+.chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  min-height: 40px;
+  line-height: 1.5;
+}
+.chat-input:focus { border-color: var(--primary); }
+.chat-send {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.15s;
+  flex-shrink: 0;
+}
+.chat-send:hover { filter: brightness(0.95); }
+.chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.typing-indicator {
+  display: flex; gap: 5px;
+  padding: 4px 0;
+  align-items: center;
+}
+.typing-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: typing 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+/* ===== API 키 설정 모달 ===== */
+.settings-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 540px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.settings-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.settings-modal .desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 8px;
+}
+.settings-modal .field { margin-bottom: 14px; }
+.settings-modal .field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.settings-modal .field input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+.settings-modal .field input:focus { border-color: var(--primary); }
+.settings-modal .help {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.settings-modal .help a { color: var(--primary); text-decoration: none; }
+.settings-modal .help a:hover { text-decoration: underline; }
+.settings-modal .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+.settings-modal .btn {
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.settings-modal .btn:hover { background: var(--bg); }
+.settings-modal .btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.settings-modal .btn.primary:hover { filter: brightness(0.95); }
+
+@media (max-width: 600px) {
+  .ai-modal {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .chat-msg { max-width: 92%; }
+  .ai-modal-bg { padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-info">
+      <div class="hero-greet" id="heroGreet">반가워요</div>
+      <h1 class="hero-title">우리집 라이프 OS</h1>
+      <div class="hero-date" id="heroDate"></div>
+    </div>
+    <div class="hero-assistant">
+      <input type="text" id="heroAssistantInput" placeholder="🏠 우리집 비서에게 물어보기 (예: 오늘 어땠어?)" />
+      <button class="hero-assistant-btn" id="heroAssistantBtn">물어보기</button>
+    </div>
+  </div>
+
+  <!-- 날씨 상세 카드 -->
+  <div class="weather-card loading" id="weatherCard">
+    <div>📍 날씨 정보 로딩 중...</div>
+  </div>
+
+  <!-- 일정 달력 -->
+  <div class="section-title">📅 일정</div>
+  <div class="calendar-card">
+    <!-- 오늘/내일 일정 알림 -->
+    <div id="notifBanner" style="display:none;"></div>
+
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="calPrev">‹</button>
+      <div class="cal-month-label" id="calMonthLabel">2026년 4월</div>
+      <button class="cal-nav-btn" id="calNext">›</button>
+      <button class="cal-today-btn" id="calToday">오늘</button>
+      <button class="cal-notif-btn" id="notifBtn">🔔 알림</button>
+    </div>
+
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="cal-day-detail">
+      <div class="cal-detail-header">
+        <div>
+          <div class="cal-detail-title" id="calDetailTitle">오늘의 일정</div>
+          <div class="cal-detail-sub" id="calDetailSub"></div>
+        </div>
+      </div>
+      <div class="cal-event-list" id="calEventList"></div>
+      <div class="cal-add-btns">
+        <button class="cal-add-btn" id="calAddBtn">+ 일정 추가</button>
+        <button class="cal-add-btn ai" id="calAddAiBtn">✨ 글로 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 빠른 도구 -->
+  <div class="section-title">빠른 도구</div>
+  <div class="quick-grid">
+
+    <!-- AI 어시스턴트 -->
+    <div class="quick-card ai-search">
+      <div class="quick-card-header">
+        <div class="quick-icon">🤖</div>
+        <div style="flex:1;min-width:0;">
+          <div class="quick-title">AI에게 물어보기</div>
+          <div class="quick-desc">🔍 일반 검색 (외부 정보) · 🏠 비서 (내 데이터 활용)</div>
+        </div>
+        <button class="ai-settings-btn" id="aiSettingsBtn" title="API 키 설정">⚙️</button>
+      </div>
+
+      <div class="search-row">
+        <input type="text" id="aiSearchInput" placeholder="예: 신생아 수유 간격은? 임신 22주 추천 음식?" />
+        <button class="search-btn" id="searchBtn">🔍 검색</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:10px;line-height:1.4;">
+        💡 외부 정보(상식/뉴스/지식) 검색용. 우리집 데이터는 위 <strong>🏠 우리집 비서</strong>에서 물어보세요.
+      </div>
+
+      <!-- Gemini 답변 영역 (검색 후 표시) -->
+      <div class="ai-answer" id="aiAnswer" style="display:none;">
+        <div class="answer-header">
+          <span class="answer-label">✨ Gemini</span>
+          <button class="answer-close" id="answerClose">×</button>
+        </div>
+        <div class="answer-body" id="answerBody"></div>
+      </div>
+
+      <!-- 외부 링크 -->
+      <div class="external-links">
+        <span class="external-label">또는 외부에서:</span>
+        <button class="ext-btn" data-ai="claude">🎭 Claude</button>
+        <button class="ext-btn" data-ai="chatgpt">💬 ChatGPT</button>
+        <button class="ext-btn" data-ai="perplexity">🔎 Perplexity</button>
+        <button class="ext-btn" data-ai="naver">🅽 네이버</button>
+      </div>
+    </div>
+
+    <!-- 내 주변 맛집 -->
+    <div class="quick-card food-search">
+      <div class="quick-card-header">
+        <div class="quick-icon">🍜</div>
+        <div>
+          <div class="quick-title">내 주변 맛집</div>
+          <div class="quick-desc" id="locationStatus">위치를 찾아 카카오맵 / 네이버지도로 검색합니다</div>
+        </div>
+      </div>
+      <div class="food-categories">
+        <button class="food-cat" data-cat="맛집">🍽️ 맛집</button>
+        <button class="food-cat" data-cat="한식">🍚 한식</button>
+        <button class="food-cat" data-cat="중식">🥟 중식</button>
+        <button class="food-cat" data-cat="일식">🍣 일식</button>
+        <button class="food-cat" data-cat="양식">🍝 양식</button>
+        <button class="food-cat" data-cat="카페">☕ 카페</button>
+        <button class="food-cat" data-cat="분식">🍢 분식</button>
+        <button class="food-cat" data-cat="치킨">🍗 치킨</button>
+        <button class="food-cat" data-cat="술집">🍻 술집</button>
+        <button class="food-cat" data-cat="아이맘 카페">👶 아이맘카페</button>
+      </div>
+      <button class="find-loc-btn" id="findLocationBtn">📍 내 위치 찾기</button>
+
+      <!-- 위치 찾은 후 보여지는 외부 서비스 버튼들 -->
+      <div class="location-services" id="locationServices">
+        <div style="font-size:11.5px;color:var(--text-secondary);margin-bottom:4px;">
+          카테고리를 선택하거나 직접 검색하세요
+        </div>
+        <input type="text" id="foodCustomQuery" placeholder="직접 검색어 입력 (예: 라멘, 빙수)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--bg);outline:none;" />
+
+        <!-- 인앱 매장 리스트 -->
+        <div id="placesList" class="places-list"></div>
+        <div id="placesEmpty" class="places-empty" style="display:none;">
+          카테고리를 선택하면 주변 매장이 거리순으로 표시됩니다
+        </div>
+        <div id="placesLoading" class="places-loading" style="display:none;">
+          🔍 매장 검색 중...
+        </div>
+
+        <!-- 외부 앱 빠른 진입 -->
+        <div class="external-services">
+          <div class="label">🌐 평점/예약은 외부 앱에서:</div>
+          <div class="svc-row">
+            <button class="svc-btn" data-svc="kakao">🗺️ 카카오맵</button>
+            <button class="svc-btn" data-svc="naver">🟢 네이버지도</button>
+            <button class="svc-btn" data-svc="google">🌐 구글맵</button>
+          </div>
+          <div class="svc-row" style="margin-top:6px;">
+            <button class="svc-btn" data-svc="diningcode">🔍 다이닝코드</button>
+            <button class="svc-btn" data-svc="mango">🥭 망고플레이트</button>
+            <button class="svc-btn" data-svc="catchtable">💎 캐치테이블</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modules -->
+  <div class="section-title">모듈</div>
+  <div class="modules-grid">
+    <a href="./gagebu.html" class="module-card">
+      <div class="module-icon" style="background:#DBEAFE;color:#1E40AF;">💰</div>
+      <div>
+        <div class="module-name">우리집 가계부</div>
+        <div class="module-desc">월별 통장 잔액 · 카드/현금 분리 관리 · 자산 관리</div>
+      </div>
+      <div class="module-stat" id="statGagebu">데이터 불러오는 중...</div>
+    </a>
+
+    <a href="./travel.html" class="module-card">
+      <div class="module-icon" style="background:#FEF3C7;color:#92400E;">✈️</div>
+      <div>
+        <div class="module-name">여행일지</div>
+        <div class="module-desc">여행 계획 · 일자별 일정 · 비용 정리 · 추억 기록</div>
+      </div>
+      <div class="module-stat" id="statTravel">데이터 불러오는 중...</div>
+    </a>
+
+    <a href="./kids.html" class="module-card">
+      <div class="module-icon" style="background:#FCE7F3;color:#BE185D;">👶</div>
+      <div>
+        <div class="module-name">자녀 기록</div>
+        <div class="module-desc">성장 일기 · 키/몸무게 추이 · 마일스톤 · 사진</div>
+      </div>
+      <div class="module-stat" id="statKids">데이터 불러오는 중...</div>
+    </a>
+
+    <a href="./home.html" class="module-card">
+      <div class="module-icon" style="background:#CFFAFE;color:#0E7490;">🏠</div>
+      <div>
+        <div class="module-name">가전 / 스마트홈</div>
+        <div class="module-desc">우리집 가전 통합 관리 · 자동화 시나리오 · 모델/AS</div>
+      </div>
+      <div class="module-stat" id="statHome">데이터 불러오는 중...</div>
+    </a>
+
+    <a href="./health.html" class="module-card">
+      <div class="module-icon" style="background:#D1FAE5;color:#047857;">🥗</div>
+      <div>
+        <div class="module-name">건강 / 식단</div>
+        <div class="module-desc">음식 사진 칼로리 · 체중 · 운동</div>
+      </div>
+      <div class="module-stat" id="statHealth">데이터 불러오는 중...</div>
+    </a>
+
+    <a href="./maintenance.html" class="module-card">
+      <div class="module-icon" style="background:#CCFBF1;color:#0F766E;">🔧</div>
+      <div>
+        <div class="module-name">집안 관리</div>
+        <div class="module-desc">필터 교체 · 정기 점검 · 수리 이력 · 자동 알림</div>
+      </div>
+      <div class="module-stat" id="statMaintenance">데이터 불러오는 중...</div>
+    </a>
+
+    <div class="module-card coming-soon">
+      <div class="module-icon" style="background:#E0E7FF;color:#4338CA;">📝</div>
+      <div>
+        <div class="module-name">메모 / 일기</div>
+        <div class="module-desc">자유 메모 · 일기 · 태그 검색</div>
+      </div>
+      <div class="module-stat">곧 추가될 예정입니다</div>
+    </div>
+
+    <div class="module-card coming-soon">
+      <div class="module-icon" style="background:#FFEDD5;color:#9A3412;">🎯</div>
+      <div>
+        <div class="module-name">목표 관리</div>
+        <div class="module-desc">연간/월간 목표 · 습관 트래커</div>
+      </div>
+      <div class="module-stat">곧 추가될 예정입니다</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Life OS · 모든 데이터는 이 기기 브라우저에 저장됩니다
+  </div>
+</div>
+
+<!-- 자연어로 일정 추가 모달 -->
+<div class="event-modal-bg" id="naturalModal">
+  <div class="event-modal">
+    <h3>✨ 글로 일정 추가</h3>
+    <div class="field">
+      <label>일정을 자유롭게 적어주세요</label>
+      <textarea id="naturalInput" rows="3" placeholder="예시:
+• 내일 오후 3시 산부인과 진료
+• 다음 주 토요일 가족 모임
+• 5월 5일 어린이날
+• 모레 저녁 8시 친구랑 저녁"></textarea>
+    </div>
+    <div style="font-size:11px;color:var(--text-tertiary);line-height:1.5;">
+      Gemini AI가 자연어를 분석해서 자동으로 일정을 만들어요. (Gemini API 키 필요)
+    </div>
+
+    <div id="naturalLoading" class="natural-loading" style="display:none;">
+      <span class="natural-spinner"></span>분석 중...
+    </div>
+
+    <div id="naturalResult" class="natural-result-card" style="display:none;">
+      <div class="nrc-title">분석 결과 (수정 가능)</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>제목</label>
+        <input id="naturalTitle" />
+      </div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:10px;">
+          <label>날짜</label>
+          <input type="date" id="naturalDate" />
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>시간</label>
+          <input type="time" id="naturalTime" />
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>아이콘</label>
+        <input id="naturalIcon" maxlength="2" style="width:60px;text-align:center;font-size:18px;" />
+      </div>
+    </div>
+
+    <div id="naturalError" style="display:none;background:#FEF2F2;color:#B91C1C;padding:10px 12px;border-radius:8px;font-size:12px;margin-top:10px;line-height:1.5;"></div>
+
+    <div class="actions">
+      <button class="btn" onclick="closeNaturalModal()">취소</button>
+      <button class="btn primary" id="naturalAnalyzeBtn">✨ 분석</button>
+      <button class="btn primary" id="naturalSaveBtn" style="display:none;">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정 추가/수정 모달 -->
+<div class="event-modal-bg" id="eventModal">
+  <div class="event-modal">
+    <h3 id="eventModalTitle">일정 추가</h3>
+    <div class="field">
+      <label>제목</label>
+      <input id="eventTitle" placeholder="예: 산부인과 진료, 약속, 회의" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>날짜</label>
+        <input type="date" id="eventDate" />
+      </div>
+      <div class="field">
+        <label>시간 (선택)</label>
+        <input type="time" id="eventTime" />
+      </div>
+    </div>
+    <div class="field">
+      <label>아이콘</label>
+      <div class="event-icon-picker" id="eventIconPicker">
+        <button class="event-icon-btn" data-icon="📌">📌</button>
+        <button class="event-icon-btn" data-icon="📅">📅</button>
+        <button class="event-icon-btn" data-icon="🏥">🏥</button>
+        <button class="event-icon-btn" data-icon="💼">💼</button>
+        <button class="event-icon-btn" data-icon="🎉">🎉</button>
+        <button class="event-icon-btn" data-icon="🍽️">🍽️</button>
+        <button class="event-icon-btn" data-icon="✈️">✈️</button>
+        <button class="event-icon-btn" data-icon="🎂">🎂</button>
+        <button class="event-icon-btn" data-icon="💊">💊</button>
+        <button class="event-icon-btn" data-icon="📞">📞</button>
+        <button class="event-icon-btn" data-icon="🛒">🛒</button>
+        <button class="event-icon-btn" data-icon="❤️">❤️</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <textarea id="eventNotes" placeholder="추가 메모"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn danger actions-left" id="eventDeleteBtn" style="display:none;">삭제</button>
+      <button class="btn" id="eventCancelBtn">취소</button>
+      <button class="btn primary" id="eventSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 세부 카테고리 모달 (맛집) -->
+<div class="ai-modal-bg" id="subcatModal">
+  <div class="settings-modal subcat-modal">
+    <h3 id="subcatTitle">메뉴 선택</h3>
+    <div class="sub">원하는 메뉴를 선택하면 주변 검색 결과를 보여드립니다</div>
+    <div class="subcat-grid" id="subcatGrid"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeSubcatModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- API 키 설정 모달 -->
+<div class="ai-modal-bg" id="settingsModal">
+  <div class="settings-modal">
+    <h3>⚙️ API 키 설정</h3>
+    <div class="desc">
+      🔒 <strong>이 키는 이 기기 브라우저에만 저장</strong>되고 어디로도 전송되지 않습니다.<br>
+      Google이 직접 호출되며, 라이프 OS는 중간에 끼지 않아요.
+    </div>
+
+    <div class="field">
+      <label>✨ Google AI Studio API 키 (Gemini)</label>
+      <input id="apiKeyGoogle" type="password" placeholder="AIza..." autocomplete="off" />
+      <div class="help">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com</a>에서 무료 발급 (한도 풍부 - 분당 15회, 일일 1,500회)
+      </div>
+    </div>
+
+    <div class="field">
+      <label>✨ Gemini 모델 (선택)</label>
+      <input id="apiModelGemini" type="text" placeholder="gemini-2.5-flash" autocomplete="off" />
+      <div class="help">
+        기본 = <code>gemini-2.5-flash</code> (균형, 일 250회) · <code>gemini-2.5-flash-lite</code> (일 1,000회) · <code>gemini-2.5-pro</code> (고품질, 일 100회)<br>
+        ⚠️ <code>gemini-2.0-flash</code>는 2026년 3월 deprecated됨
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:16px 0 0;padding-top:16px;">
+      <h4 style="font-size:14px;font-weight:600;margin-bottom:8px;">🍜 맛집 검색 (선택)</h4>
+    </div>
+
+    <div class="field">
+      <label>🗺️ 카카오 REST API 키</label>
+      <input id="apiKeyKakao" type="password" placeholder="카카오 REST API 키" autocomplete="off" />
+      <div class="help">
+        <a href="https://developers.kakao.com" target="_blank" rel="noopener">developers.kakao.com</a> → 내 애플리케이션 → REST API 키 (무료, 일 30,000회)<br>
+        💡 앱 → 카카오맵 사용설정 ON + 플랫폼에 도메인 등록 필요
+      </div>
+    </div>
+
+    <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#0C4A6E;line-height:1.6;margin-top:8px;">
+      💡 <strong>Claude는 외부 사이트(claude.ai)로 열려요.</strong><br>
+      이미 claude.ai 유료 구독 중이라면 그쪽이 더 효율적이에요. Claude 버튼 클릭 시 질문이 클립보드에 복사되고 새 탭이 열립니다.
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnSettingsCancel">취소</button>
+      <button class="btn primary" id="btnSettingsSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Date Greeting ----------
+const now = new Date();
+const hour = now.getHours();
+let greet = '반가워요';
+if (hour < 6) greet = '늦은 시간이네요';
+else if (hour < 12) greet = '좋은 아침이에요';
+else if (hour < 18) greet = '오후도 좋은 하루 되세요';
+else greet = '오늘 하루 수고하셨어요';
+document.getElementById('heroGreet').textContent = greet;
+
+const days = ['일','월','화','수','목','금','토'];
+document.getElementById('heroDate').textContent =
+  `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+
+// ---------- Stats from each module ----------
+const fmt = (n) => '₩' + new Intl.NumberFormat('ko-KR').format(Math.round(Math.abs(n||0)));
+
+function loadGagebuStats() {
+  try {
+    const raw = localStorage.getItem('gagebu-full-v1');
+    if (!raw) {
+      document.getElementById('statGagebu').innerHTML = '아직 데이터가 없어요';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const txns = data.transactions || [];
+    const m = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthTxns = txns.filter(t => t.date && t.date.startsWith(m));
+
+    // 결제수단 중 카드는 type !== 'cash' (가계부와 동일)
+    const cardIds = (data.paymentMethods || []).filter(p => p.type !== 'cash').map(p => p.id);
+    let income = 0, cardSpend = 0, cashSpend = 0, transferOut = 0;
+    monthTxns.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === 'income') income += amt;
+      else if (t.type === 'expense') {
+        if (cardIds.includes(t.method)) cardSpend += amt;
+        else cashSpend += amt;
+      } else if (t.type === 'transfer' && t.fromAccount === '__wallet__') {
+        transferOut += amt;
+      }
+    });
+    const totalExpense = cardSpend + cashSpend;
+
+    // 월별 통장 잔액 (이번 달 키)
+    const wbm = data.walletBalanceByMonth || {};
+    const startBal = Number(wbm[m]) || 0;
+    // 가용 자산 (카드 차감 후) = 시작잔액 + 수입 - 현금 - 이체 - 카드
+    const availableAfter = startBal + income - cashSpend - transferOut - cardSpend;
+
+    // 목적통장 잔액
+    const goalsBalance = (data.goals || []).reduce((s,g) => s + (Number(g.balance)||0), 0);
+
+    // 출력
+    let html = '';
+    if (startBal > 0 || income > 0 || totalExpense > 0) {
+      html += `이번 달 수입 <strong>${fmt(income)}</strong> · 지출 <strong>${fmt(totalExpense)}</strong>`;
+      // 가용자산은 통장잔액이 입력된 경우에만 의미있는 값
+      if (startBal > 0) {
+        const color = availableAfter < 0 ? '#EF4444' : '#1E40AF';
+        html += `<br>가용 자산 <strong style="color:${color};">${availableAfter < 0 ? '-' : ''}${fmt(availableAfter)}</strong> <span style="color:#94A3B8;font-size:11px;">(카드 차감 후)</span>`;
+      }
+      if (goalsBalance > 0) {
+        html += `<br>목적통장 잔액 <strong>${fmt(goalsBalance)}</strong>`;
+      }
+    } else {
+      html = '이번 달 거래가 없어요';
+    }
+    document.getElementById('statGagebu').innerHTML = html;
+  } catch(e) {
+    document.getElementById('statGagebu').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+function loadTravelStats() {
+  try {
+    const raw = localStorage.getItem('lifeos-travel-v1');
+    if (!raw) {
+      document.getElementById('statTravel').innerHTML = '아직 데이터가 없어요';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const trips = data.trips || [];
+    if (trips.length === 0) {
+      document.getElementById('statTravel').innerHTML = '아직 등록된 여행이 없어요';
+      return;
+    }
+    const today = now.toISOString().slice(0, 10);
+    const upcoming = trips.filter(t => t.startDate && t.startDate > today).length;
+    const past = trips.filter(t => t.endDate && t.endDate < today).length;
+    const ongoing = trips.length - upcoming - past;
+    document.getElementById('statTravel').innerHTML =
+      `총 <strong>${trips.length}</strong>개 여행 · ` +
+      (upcoming > 0 ? `예정 <strong>${upcoming}</strong>` : '') +
+      (ongoing > 0 ? ` · 진행 중 <strong>${ongoing}</strong>` : '') +
+      (past > 0 ? ` · 다녀온 곳 <strong>${past}</strong>` : '');
+  } catch(e) {
+    document.getElementById('statTravel').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+function loadKidsStats() {
+  try {
+    const raw = localStorage.getItem('lifeos-kids-v1');
+    if (!raw) {
+      document.getElementById('statKids').innerHTML = '아직 데이터가 없어요';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const kids = data.kids || [];
+    if (kids.length === 0) {
+      document.getElementById('statKids').innerHTML = '아직 등록된 자녀가 없어요';
+      return;
+    }
+    const totalEntries = (data.entries || []).length;
+    const totalMilestones = (data.milestones || []).length;
+    const totalGrowth = (data.growth || []).length;
+
+    let html = `자녀 <strong>${kids.length}</strong>명`;
+    if (totalEntries > 0) html += ` · 일기 <strong>${totalEntries}</strong>건`;
+    if (totalMilestones > 0) html += ` · 마일스톤 <strong>${totalMilestones}</strong>`;
+    if (totalGrowth > 0) html += ` · 성장기록 <strong>${totalGrowth}</strong>`;
+
+    document.getElementById('statKids').innerHTML = html;
+  } catch(e) {
+    document.getElementById('statKids').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+function loadHomeStats() {
+  try {
+    const raw = localStorage.getItem('lifeos-home-v1');
+    if (!raw) {
+      document.getElementById('statHome').innerHTML = '아직 등록된 가전이 없어요';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const devices = data.devices || [];
+    const scenarios = data.scenarios || [];
+    if (devices.length === 0 && scenarios.length === 0) {
+      document.getElementById('statHome').innerHTML = '아직 등록된 가전이 없어요';
+      return;
+    }
+    let html = `가전 <strong>${devices.length}</strong>대`;
+    if (scenarios.length > 0) html += ` · 시나리오 <strong>${scenarios.length}</strong>`;
+    const rooms = new Set(devices.map(d => d.room).filter(Boolean));
+    if (rooms.size > 0) html += ` · 방 <strong>${rooms.size}</strong>곳`;
+    document.getElementById('statHome').innerHTML = html;
+  } catch(e) {
+    document.getElementById('statHome').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+function loadHealthStats() {
+  try {
+    const raw = localStorage.getItem('lifeos-health-v1');
+    if (!raw) {
+      document.getElementById('statHealth').innerHTML = '오늘 식단/운동을 기록해보세요';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    const meals = data.meals || [];
+    const weights = data.weights || [];
+    const exercises = data.exercises || [];
+
+    const todayMeals = meals.filter(m => m.date === today);
+    const todayCal = todayMeals.reduce((s, m) => s + (m.totalCal || 0), 0);
+    const todayEx = exercises.filter(e => e.date === today);
+    const todayMin = todayEx.reduce((s, e) => s + (e.minutes || 0), 0);
+
+    const sortedW = weights.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const latestW = sortedW[0];
+
+    const parts = [];
+    if (todayCal > 0) {
+      const goal = data.goals?.dailyCalories;
+      if (goal) {
+        parts.push(`오늘 <strong>${todayCal}/${goal}</strong>kcal`);
+      } else {
+        parts.push(`오늘 <strong>${todayCal}</strong>kcal`);
+      }
+    }
+    if (todayMin > 0) parts.push(`운동 <strong>${todayMin}</strong>분`);
+    if (latestW) parts.push(`체중 <strong>${latestW.weight}</strong>kg`);
+
+    if (parts.length === 0) {
+      document.getElementById('statHealth').innerHTML = '오늘 식단/운동을 기록해보세요';
+    } else {
+      document.getElementById('statHealth').innerHTML = parts.join(' · ');
+    }
+  } catch(e) {
+    document.getElementById('statHealth').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+function loadMaintenanceStats() {
+  try {
+    const raw = localStorage.getItem('lifeos-maintenance-v1');
+    if (!raw) {
+      document.getElementById('statMaintenance').innerHTML = '한국 가정 표준 19개 항목 자동 등록';
+      return;
+    }
+    const data = JSON.parse(raw);
+    const items = data.items || [];
+    const repairs = data.repairs || [];
+
+    if (items.length === 0 && repairs.length === 0) {
+      document.getElementById('statMaintenance').innerHTML = '아직 등록된 항목이 없어요';
+      return;
+    }
+
+    // 곧 다가오거나 지난 항목 카운트
+    let upcoming = 0, overdue = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    items.forEach(item => {
+      if (!item.lastDate) return;
+      const next = new Date(item.lastDate);
+      next.setMonth(next.getMonth() + (item.periodMonths || 3));
+      next.setHours(0, 0, 0, 0);
+      const days = Math.ceil((next - today) / 86400000);
+      if (days < 0) overdue++;
+      else if (days <= 7) upcoming++;
+    });
+
+    const parts = [];
+    parts.push(`항목 <strong>${items.length}</strong>개`);
+    if (overdue > 0) parts.push(`<strong style="color:#EF4444;">⚠️ ${overdue} 지남</strong>`);
+    if (upcoming > 0) parts.push(`<strong style="color:#F59E0B;">⏰ ${upcoming} 임박</strong>`);
+    if (repairs.length > 0) parts.push(`수리이력 <strong>${repairs.length}</strong>건`);
+
+    document.getElementById('statMaintenance').innerHTML = parts.join(' · ');
+  } catch(e) {
+    document.getElementById('statMaintenance').innerHTML = '데이터를 읽을 수 없어요';
+  }
+}
+
+loadGagebuStats();
+loadTravelStats();
+loadKidsStats();
+loadHomeStats();
+loadHealthStats();
+loadMaintenanceStats();
+
+// ============================
+// ☀️ 날씨 (Open-Meteo API, 무료)
+// ============================
+
+const LOCATION_STORAGE = 'lifeos-weather-loc';
+
+function loadCachedLocation() {
+  try {
+    const raw = localStorage.getItem(LOCATION_STORAGE);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // 7일 이내만 유효
+    if (Date.now() - data.cachedAt < 7 * 24 * 60 * 60 * 1000) {
+      return { lat: data.lat, lng: data.lng };
+    }
+  } catch(e) {}
+  return null;
+}
+
+function saveCachedLocation(lat, lng) {
+  localStorage.setItem(LOCATION_STORAGE, JSON.stringify({
+    lat, lng, cachedAt: Date.now(),
+  }));
+}
+
+async function getWeatherLocation() {
+  // 캐시 우선
+  const cached = loadCachedLocation();
+  if (cached) return cached;
+
+  // navigator.geolocation 시도 (timeout 짧게)
+  if (!navigator.geolocation) return { lat: 37.5665, lng: 126.978, fallback: true };
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        saveCachedLocation(loc.lat, loc.lng);
+        resolve(loc);
+      },
+      () => {
+        // 거부 시 서울 기본값
+        resolve({ lat: 37.5665, lng: 126.978, fallback: true });
+      },
+      { timeout: 4000, maximumAge: 60 * 60 * 1000 }
+    );
+  });
+}
+
+function weatherIcon(code, isDay) {
+  if (code === 0) return isDay ? '☀️' : '🌙';
+  if (code === 1) return isDay ? '🌤️' : '☁️';
+  if (code === 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫️';
+  if (code <= 57) return '🌦️';
+  if (code <= 65) return '🌧️';
+  if (code <= 67) return '🌨️';
+  if (code <= 77) return '🌨️';
+  if (code <= 82) return '🌧️';
+  if (code <= 86) return '🌨️';
+  if (code >= 95) return '⛈️';
+  return '🌤️';
+}
+
+function weatherDesc(code) {
+  if (code === 0) return '맑음';
+  if (code === 1) return '대체로 맑음';
+  if (code === 2) return '구름 조금';
+  if (code === 3) return '흐림';
+  if (code === 45 || code === 48) return '안개';
+  if (code >= 51 && code <= 57) return '이슬비';
+  if (code >= 61 && code <= 65) return '비';
+  if (code >= 66 && code <= 67) return '진눈깨비';
+  if (code >= 71 && code <= 77) return '눈';
+  if (code >= 80 && code <= 82) return '소나기';
+  if (code >= 85 && code <= 86) return '눈';
+  if (code >= 95) return '천둥번개';
+  return '날씨';
+}
+
+function isRainyCode(code) {
+  return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95);
+}
+
+function fmtRainTime(date) {
+  const h = date.getHours();
+  const m = date.getMinutes();
+  const ampm = h < 12 ? '오전' : '오후';
+  const hh = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+  return `${ampm} ${hh}시${m > 0 ? ' ' + m + '분' : ''}`;
+}
+
+async function fetchAndShowWeather() {
+  const cardEl = document.getElementById('weatherCard');
+  if (!cardEl) return;
+
+  try {
+    const loc = await getWeatherLocation();
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,weather_code,is_day,precipitation_probability&hourly=temperature_2m,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min&forecast_days=2&timezone=Asia%2FSeoul`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('날씨 API 오류');
+    const data = await res.json();
+
+    const cur = data.current;
+    const hourly = data.hourly;
+    const daily = data.daily;
+    const temp = Math.round(cur.temperature_2m);
+    const code = cur.weather_code;
+    const isDay = cur.is_day === 1;
+    const icon = weatherIcon(code, isDay);
+    const desc = weatherDesc(code);
+    const tHigh = daily?.temperature_2m_max?.[0];
+    const tLow = daily?.temperature_2m_min?.[0];
+
+    // 비 오는 시간 분석
+    const now = new Date();
+    let firstRain = null;
+    let maxProb = 0;
+    if (hourly && Array.isArray(hourly.time)) {
+      for (let i = 0; i < hourly.time.length; i++) {
+        const t = new Date(hourly.time[i]);
+        const diffHr = (t - now) / (1000 * 60 * 60);
+        if (diffHr < -0.5) continue;
+        if (diffHr > 24) break;
+        const prob = hourly.precipitation_probability[i] ?? 0;
+        const code2 = hourly.weather_code[i] ?? 0;
+        if (prob > maxProb) maxProb = prob;
+        if (!firstRain && prob >= 50 && isRainyCode(code2)) {
+          firstRain = { time: t, prob };
+        }
+      }
+    }
+
+    // 비 정보 박스 (우측)
+    let rainBadge = '';
+    if (firstRain) {
+      rainBadge = `<div class="rain">☂️ ${fmtRainTime(firstRain.time)} 비 (${firstRain.prob}%)</div>`;
+    } else if (maxProb >= 30) {
+      rainBadge = `<div class="rain">☂️ 비 ${maxProb}%</div>`;
+    } else {
+      rainBadge = `<div class="rain no-rain">☀️ 비 없음</div>`;
+    }
+
+    // 시간대별 (3시간 간격)
+    let hourlyHtml = '';
+    if (hourly && Array.isArray(hourly.time)) {
+      const cells = [];
+      for (let i = 0; i < hourly.time.length; i++) {
+        const t = new Date(hourly.time[i]);
+        const diffHr = (t - now) / (1000 * 60 * 60);
+        if (diffHr < -0.5) continue;
+        if (diffHr > 24) break;
+        if (cells.length === 0 || (diffHr % 3 < 1 && t.getMinutes() === 0)) {
+          const tt = Math.round(hourly.temperature_2m[i]);
+          const cc = hourly.weather_code[i];
+          const pp = hourly.precipitation_probability[i] ?? 0;
+          const isRain = isRainyCode(cc);
+          const isNow = cells.length === 0;
+          const hh = t.getHours();
+          const timeLabel = isNow ? '지금' : `${hh}시`;
+          const dayHour = t.getHours() >= 6 && t.getHours() < 19;
+          cells.push(`
+            <div class="hourly-cell ${pp >= 50 && isRain ? 'rain' : ''} ${isNow ? 'now' : ''}">
+              <div class="time">${timeLabel}</div>
+              <div class="ic">${weatherIcon(cc, dayHour)}</div>
+              <div class="t">${tt}°</div>
+              <div class="p">${pp}%</div>
+            </div>
+          `);
+        }
+        if (cells.length >= 9) break;
+      }
+      hourlyHtml = `<div class="weather-hourly">${cells.join('')}</div>`;
+    }
+
+    cardEl.classList.remove('loading');
+    cardEl.innerHTML = `
+      <div class="weather-row1">
+        <div class="icon">${icon}</div>
+        <div class="main">
+          <span class="temp">${temp}°</span>
+          <span class="desc">${desc}</span>
+          ${tHigh != null && tLow != null ? `<span class="range">${Math.round(tHigh)}°/${Math.round(tLow)}°</span>` : ''}
+        </div>
+        ${rainBadge}
+        <button class="loc-btn" id="weatherLocBtn">📍</button>
+      </div>
+      ${hourlyHtml}
+    `;
+
+    const locBtn = document.getElementById('weatherLocBtn');
+    if (locBtn) locBtn.onclick = refreshLocation;
+  } catch(err) {
+    cardEl.classList.remove('loading');
+    cardEl.innerHTML = '<div style="font-size:11px;color:var(--text-tertiary);text-align:center;">날씨 정보를 불러올 수 없어요</div>';
+    console.warn('날씨 로딩 실패:', err);
+  }
+}
+
+function refreshLocation() {
+  if (!navigator.geolocation) { showToast('위치 정보 미지원'); return; }
+  const cardEl = document.getElementById('weatherCard');
+  if (cardEl) {
+    cardEl.classList.add('loading');
+    cardEl.innerHTML = '<div>📍 위치 확인 중...</div>';
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      saveCachedLocation(pos.coords.latitude, pos.coords.longitude);
+      fetchAndShowWeather();
+      showToast('📍 위치가 갱신되었어요');
+    },
+    () => {
+      showToast('위치를 받을 수 없어요');
+      fetchAndShowWeather();
+    },
+    { timeout: 5000 }
+  );
+}
+
+// 페이지 로드 후 날씨 가져오기
+fetchAndShowWeather();
+
+// ============================
+// 🏠 Hero 비서 입력창 → askAssistant 연결
+// ============================
+
+document.getElementById('heroAssistantBtn').addEventListener('click', () => {
+  const heroInput = document.getElementById('heroAssistantInput');
+  const query = heroInput.value.trim();
+  if (!query) {
+    showToast('질문을 입력해주세요');
+    heroInput.focus();
+    return;
+  }
+  // 빠른 도구의 입력창에 동기화
+  document.getElementById('aiSearchInput').value = query;
+  // 비서 호출
+  if (typeof askAssistant === 'function') {
+    askAssistant();
+    heroInput.value = '';
+  }
+});
+
+document.getElementById('heroAssistantInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('heroAssistantBtn').click();
+  }
+});
+
+// ============================
+// 📅 일정 달력
+// ============================
+
+const CAL_STORAGE = 'lifeos-calendar-v1';
+
+const calState = {
+  // 현재 보고 있는 달
+  viewYear: new Date().getFullYear(),
+  viewMonth: new Date().getMonth(), // 0-11
+  // 선택된 날짜
+  selectedDate: new Date().toISOString().slice(0, 10),
+  // 편집 중인 일정 ID
+  editingId: null,
+  // 선택된 아이콘
+  selectedIcon: '📌',
+};
+
+const SOURCE_LABELS = {
+  manual: '직접',
+  travel: '여행',
+  pregnancy: '임신',
+  kids: '자녀',
+  birthday: '생일',
+  anniversary: '기념일',
+};
+
+// 사용자 직접 추가 일정 로드/저장
+function loadManualEvents() {
+  try {
+    const raw = localStorage.getItem(CAL_STORAGE);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    return data.events || [];
+  } catch(e) { return []; }
+}
+function saveManualEvents(events) {
+  localStorage.setItem(CAL_STORAGE, JSON.stringify({ events }));
+}
+
+// 자동 일정 (다른 모듈에서 가져옴)
+function getAutoEvents() {
+  const events = [];
+
+  // 1. 여행 일정
+  try {
+    const raw = localStorage.getItem('lifeos-travel-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      const trips = data.trips || [];
+      trips.forEach(trip => {
+        const start = trip.startDate || trip.start_date;
+        const end = trip.endDate || trip.end_date;
+        const title = trip.title || trip.name || trip.destination || '여행';
+        if (start) {
+          events.push({
+            id: 'travel-' + (trip.id || start) + '-start',
+            date: start,
+            title: title + ' 출발',
+            icon: '✈️',
+            source: 'travel',
+            readOnly: true,
+          });
+        }
+        if (end && end !== start) {
+          events.push({
+            id: 'travel-' + (trip.id || end) + '-end',
+            date: end,
+            title: title + ' 귀가',
+            icon: '🏠',
+            source: 'travel',
+            readOnly: true,
+          });
+        }
+      });
+    }
+  } catch(e) {}
+
+  // 2. 자녀 / 임신 일정
+  try {
+    const raw = localStorage.getItem('lifeos-kids-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+
+      // 임신 기록 (배열): kind === 'checkup' 인 항목 = 산전검사
+      const pregEntries = Array.isArray(data.pregnancy) ? data.pregnancy : [];
+      pregEntries.filter(p => p.kind === 'checkup' && p.date).forEach(p => {
+        events.push({
+          id: 'checkup-' + (p.id || p.date),
+          date: p.date,
+          title: p.text || '산전검사',
+          time: p.time,
+          icon: '🏥',
+          source: 'pregnancy',
+          readOnly: true,
+          notes: p.memo || '',
+        });
+      });
+
+      // 자녀들
+      const kids = data.kids || data.children || [];
+      kids.forEach(kid => {
+        const kidName = kid.name || '아이';
+        const bd = kid.birthDate || kid.birth_date || kid.birthday;
+        if (!bd) return;
+        const birth = new Date(bd);
+        if (isNaN(birth.getTime())) return;
+
+        const today = new Date();
+        const isUnbornKid = birth > today;
+
+        if (isUnbornKid) {
+          // 출산 전 = 출산 예정일 (한 번만)
+          events.push({
+            id: 'duedate-' + (kid.id || bd),
+            date: bd,
+            title: `🤰 ${kidName} 출산 예정일`,
+            icon: '🤰',
+            source: 'pregnancy',
+            readOnly: true,
+          });
+        } else {
+          // 출산 후 = 매년 생일 반복
+          const birthYear = birth.getFullYear();
+          const m = String(birth.getMonth() + 1).padStart(2, '0');
+          const d = String(birth.getDate()).padStart(2, '0');
+          const cy = today.getFullYear();
+          for (let y = cy - 1; y <= cy + 2; y++) {
+            const date = `${y}-${m}-${d}`;
+            const age = y - birthYear;
+            events.push({
+              id: `birthday-${kid.id || kidName}-${y}`,
+              date,
+              title: `${kidName} 생일${age > 0 ? ` (${age}살)` : ''}`,
+              icon: '🎂',
+              source: 'birthday',
+              readOnly: true,
+            });
+          }
+        }
+
+        // 예방접종 (있다면)
+        if (Array.isArray(kid.vaccinations)) {
+          kid.vaccinations.forEach(v => {
+            const d = v.date || v.scheduledDate;
+            if (!d) return;
+            events.push({
+              id: `vacc-${kid.id || kidName}-${v.id || v.name || d}`,
+              date: d,
+              title: `${kidName} ${v.name || '예방접종'}`,
+              icon: '💉',
+              source: 'kids',
+              readOnly: true,
+              notes: v.notes,
+            });
+          });
+        }
+      });
+
+      // 예방접종 (state.vaccinations 배열에 있을 수도)
+      const vaccinations = data.vaccinations || [];
+      vaccinations.forEach(v => {
+        if (!v.scheduledDate || v.completedDate) return;
+        const kid = kids.find(k => k.id === v.kidId);
+        const kidName = kid?.name || '';
+        events.push({
+          id: 'vaccine-' + v.id,
+          date: v.scheduledDate,
+          title: `💉 ${kidName ? kidName + ' ' : ''}${v.vaccineId || v.name || '예방접종'}`,
+          icon: '💉',
+          source: 'kids',
+          readOnly: true,
+          notes: v.memo || '',
+        });
+      });
+
+      // 진료 기록 (이미 끝난 거지만 미래 예약도 있을 수 있음)
+      const visits = data.visits || [];
+      visits.forEach(v => {
+        if (!v.date) return;
+        const today = new Date().toISOString().slice(0, 10);
+        if (v.date < today) return; // 과거 진료는 제외
+        const kid = kids.find(k => k.id === v.kidId);
+        const kidName = kid?.name || '';
+        events.push({
+          id: 'visit-' + v.id,
+          date: v.date,
+          title: `🏥 ${kidName ? kidName + ' ' : ''}${v.hospital || v.reason || '진료'}`,
+          icon: '🏥',
+          source: 'kids',
+          readOnly: true,
+          notes: v.diagnosis || v.memo || '',
+        });
+      });
+    }
+  } catch(e) { console.warn('자녀 일정 로드 실패:', e); }
+
+  // 3. 집안 관리 (다가오는 30일 이내 정기 관리)
+  try {
+    const raw = localStorage.getItem('lifeos-maintenance-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      const items = data.items || [];
+      items.forEach(item => {
+        if (!item.lastDate) return;
+        const next = new Date(item.lastDate);
+        next.setMonth(next.getMonth() + (item.periodMonths || 3));
+        if (isNaN(next.getTime())) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysUntil = Math.ceil((next - today) / 86400000);
+        // 30일 이내 또는 7일 이내 지난 것만 일정에 표시
+        if (daysUntil < -7 || daysUntil > 60) return;
+        const dateStr = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
+        events.push({
+          id: 'maint-' + item.id,
+          date: dateStr,
+          title: `🔧 ${item.name}`,
+          icon: daysUntil < 0 ? '⚠️' : '🔧',
+          source: 'maintenance',
+          readOnly: true,
+          notes: item.memo || '',
+        });
+      });
+    }
+  } catch(e) { console.warn('집안 관리 일정 로드 실패:', e); }
+
+  return events;
+}
+
+// 모든 일정 합치기
+function getAllEvents() {
+  const manual = loadManualEvents().map(e => ({ ...e, source: e.source || 'manual' }));
+  const auto = getAutoEvents();
+  return [...manual, ...auto];
+}
+
+// 특정 날짜의 일정
+function getEventsByDate(dateStr) {
+  return getAllEvents()
+    .filter(e => e.date === dateStr)
+    .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+}
+
+// 달력 그리기
+function renderCalendar() {
+  const { viewYear, viewMonth } = calState;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // 월 라벨
+  document.getElementById('calMonthLabel').textContent = `${viewYear}년 ${viewMonth + 1}월`;
+
+  // 첫 날, 마지막 날
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const firstWeekday = firstDay.getDay(); // 0=일, 6=토
+
+  // 이전 달 끝부분 채우기
+  const prevLastDay = new Date(viewYear, viewMonth, 0).getDate();
+
+  // 모든 일정 가져오기 (날짜별로 정리)
+  const allEvents = getAllEvents();
+  const eventsByDate = {};
+  allEvents.forEach(e => {
+    if (!e.date) return;
+    if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
+    eventsByDate[e.date].push(e);
+  });
+
+  const grid = document.getElementById('calGrid');
+  let html = '';
+
+  // 요일 헤더
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  dayNames.forEach((name, i) => {
+    const cls = i === 0 ? 'sun' : i === 6 ? 'sat' : '';
+    html += `<div class="cal-day-name ${cls}">${name}</div>`;
+  });
+
+  // 이전 달
+  for (let i = firstWeekday - 1; i >= 0; i--) {
+    const day = prevLastDay - i;
+    const m = viewMonth === 0 ? 12 : viewMonth;
+    const y = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    html += `<div class="cal-day other-month" data-date="${dateStr}">${day}</div>`;
+  }
+
+  // 이번 달
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayDate = new Date(viewYear, viewMonth, day);
+    const weekday = dayDate.getDay();
+
+    let cls = '';
+    if (weekday === 0) cls += ' sun';
+    if (weekday === 6) cls += ' sat';
+    if (dateStr === todayStr) cls += ' today';
+    if (dateStr === calState.selectedDate) cls += ' selected';
+
+    // 이벤트 닷
+    const dayEvents = eventsByDate[dateStr] || [];
+    const dotsHtml = dayEvents.length > 0
+      ? `<div class="cal-event-dots">${dayEvents.slice(0, 4).map(e => {
+          const color = getSourceColor(e.source);
+          return `<span class="cal-event-dot" style="background:${color};"></span>`;
+        }).join('')}</div>`
+      : '';
+
+    html += `<div class="cal-day${cls}" data-date="${dateStr}">${day}${dotsHtml}</div>`;
+  }
+
+  // 다음 달 채우기 (총 6주 = 42칸이 되도록)
+  const totalCells = firstWeekday + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let day = 1; day <= remaining; day++) {
+    const m = viewMonth === 11 ? 1 : viewMonth + 2;
+    const y = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    html += `<div class="cal-day other-month" data-date="${dateStr}">${day}</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // 클릭 이벤트
+  grid.querySelectorAll('.cal-day').forEach(el => {
+    el.addEventListener('click', () => {
+      const date = el.dataset.date;
+      if (!date) return;
+      calState.selectedDate = date;
+
+      // 다른 달 클릭하면 그 달로 이동
+      const [y, m] = date.split('-').map(Number);
+      if (y !== viewYear || (m - 1) !== viewMonth) {
+        calState.viewYear = y;
+        calState.viewMonth = m - 1;
+        renderCalendar();
+      } else {
+        // 같은 달 - selected 표시만 갱신
+        document.querySelectorAll('.cal-day').forEach(d => d.classList.remove('selected'));
+        if (!el.classList.contains('today')) el.classList.add('selected');
+      }
+
+      renderDayDetail();
+    });
+  });
+
+  renderDayDetail();
+
+  // 알림 배너 업데이트 (함수 정의 후에만 호출 가능)
+  if (typeof renderNotifBanner === 'function') renderNotifBanner();
+}
+
+function getSourceColor(source) {
+  return {
+    manual: '#4F7CFF',
+    travel: '#F59E0B',
+    pregnancy: '#EC4899',
+    kids: '#EC4899',
+    birthday: '#EC4899',
+    anniversary: '#EF4444',
+  }[source] || '#94A3B8';
+}
+
+// 선택된 날짜의 일정 표시
+function renderDayDetail() {
+  const date = calState.selectedDate;
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 날짜 라벨
+  const d = new Date(date + 'T00:00:00');
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const w = ['일','월','화','수','목','금','토'][d.getDay()];
+
+  let label = `${m}월 ${day}일 (${w})`;
+  if (date === today) label += ' · 오늘';
+  document.getElementById('calDetailTitle').textContent = label;
+
+  // D-Day 계산 (출산 예정일)
+  let subText = '';
+  try {
+    const raw = localStorage.getItem('lifeos-kids-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      const due = data.pregnancy?.dueDate;
+      if (due) {
+        const todayDate = new Date(today + 'T00:00:00');
+        const dueDate = new Date(due + 'T00:00:00');
+        const diff = Math.ceil((dueDate - todayDate) / (1000 * 60 * 60 * 24));
+        if (diff > 0) subText = `출산까지 D-${diff}`;
+        else if (diff === 0) subText = '🤰 출산 예정일!';
+      }
+    }
+  } catch(e) {}
+  document.getElementById('calDetailSub').textContent = subText;
+
+  // 일정 리스트
+  const events = getEventsByDate(date);
+  const list = document.getElementById('calEventList');
+
+  if (events.length === 0) {
+    list.innerHTML = '<div class="cal-empty">이 날의 일정이 없어요</div>';
+  } else {
+    list.innerHTML = events.map(e => {
+      const sourceClass = e.source || 'manual';
+      const sourceLabel = SOURCE_LABELS[sourceClass] || '';
+      return `
+        <div class="cal-event-item ${e.readOnly ? 'read-only' : ''}" data-id="${e.id}">
+          <div class="cal-event-icon">${e.icon || '📌'}</div>
+          <div class="cal-event-content">
+            <div class="cal-event-title">
+              ${escapeHtmlPlaces(e.title || '제목 없음')}
+              ${sourceClass !== 'manual' ? `<span class="cal-event-source ${sourceClass}">${sourceLabel}</span>` : ''}
+            </div>
+            ${e.time ? `<div class="cal-event-meta">⏰ ${escapeHtmlPlaces(e.time)}</div>` : ''}
+            ${e.notes ? `<div class="cal-event-meta">📝 ${escapeHtmlPlaces(e.notes.slice(0, 60))}${e.notes.length > 60 ? '...' : ''}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 사용자 추가 일정만 클릭 시 수정
+    list.querySelectorAll('.cal-event-item').forEach(item => {
+      const id = item.dataset.id;
+      const ev = events.find(e => e.id === id);
+      if (!ev || ev.readOnly) return;
+      item.addEventListener('click', () => openEventModal(ev));
+    });
+  }
+}
+
+// 일정 추가/수정 모달
+function openEventModal(eventToEdit) {
+  if (eventToEdit) {
+    calState.editingId = eventToEdit.id;
+    document.getElementById('eventModalTitle').textContent = '일정 수정';
+    document.getElementById('eventTitle').value = eventToEdit.title || '';
+    document.getElementById('eventDate').value = eventToEdit.date;
+    document.getElementById('eventTime').value = eventToEdit.time || '';
+    document.getElementById('eventNotes').value = eventToEdit.notes || '';
+    calState.selectedIcon = eventToEdit.icon || '📌';
+    document.getElementById('eventDeleteBtn').style.display = '';
+  } else {
+    calState.editingId = null;
+    document.getElementById('eventModalTitle').textContent = '일정 추가';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventDate').value = calState.selectedDate;
+    document.getElementById('eventTime').value = '';
+    document.getElementById('eventNotes').value = '';
+    calState.selectedIcon = '📌';
+    document.getElementById('eventDeleteBtn').style.display = 'none';
+  }
+
+  // 아이콘 선택 표시
+  document.querySelectorAll('.event-icon-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.icon === calState.selectedIcon);
+  });
+
+  document.getElementById('eventModal').classList.add('show');
+  setTimeout(() => document.getElementById('eventTitle').focus(), 50);
+}
+
+function closeEventModal() {
+  document.getElementById('eventModal').classList.remove('show');
+  calState.editingId = null;
+}
+
+// 아이콘 클릭
+document.querySelectorAll('.event-icon-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    calState.selectedIcon = btn.dataset.icon;
+    document.querySelectorAll('.event-icon-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+
+// 일정 저장
+document.getElementById('eventSaveBtn').addEventListener('click', () => {
+  const title = document.getElementById('eventTitle').value.trim();
+  const date = document.getElementById('eventDate').value;
+  if (!title) return showToast('제목을 입력해주세요');
+  if (!date) return showToast('날짜를 선택해주세요');
+
+  const event = {
+    id: calState.editingId || (Date.now().toString(36) + Math.random().toString(36).substr(2,5)),
+    date,
+    title,
+    time: document.getElementById('eventTime').value || '',
+    notes: document.getElementById('eventNotes').value.trim(),
+    icon: calState.selectedIcon,
+    source: 'manual',
+  };
+
+  let events = loadManualEvents();
+  if (calState.editingId) {
+    const i = events.findIndex(e => e.id === calState.editingId);
+    if (i !== -1) events[i] = event;
+    else events.push(event);
+  } else {
+    events.push(event);
+  }
+  saveManualEvents(events);
+
+  closeEventModal();
+  showToast(calState.editingId ? '수정되었어요' : '추가되었어요');
+
+  // 추가한 날짜로 이동
+  const [y, m] = date.split('-').map(Number);
+  calState.viewYear = y;
+  calState.viewMonth = m - 1;
+  calState.selectedDate = date;
+  renderCalendar();
+});
+
+// 일정 삭제
+document.getElementById('eventDeleteBtn').addEventListener('click', () => {
+  if (!calState.editingId) return;
+  if (!confirm('이 일정을 삭제하시겠어요?')) return;
+  let events = loadManualEvents();
+  events = events.filter(e => e.id !== calState.editingId);
+  saveManualEvents(events);
+  closeEventModal();
+  showToast('삭제되었어요');
+  renderCalendar();
+});
+
+// 일정 추가 버튼
+document.getElementById('calAddBtn').addEventListener('click', () => openEventModal(null));
+
+// 모달 닫기
+document.getElementById('eventCancelBtn').addEventListener('click', closeEventModal);
+document.getElementById('eventModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeEventModal();
+});
+
+// ============================
+// ✨ 자연어 일정 추가 (Gemini)
+// ============================
+
+let pendingNaturalEvent = null;
+
+function openNaturalModal() {
+  document.getElementById('naturalInput').value = '';
+  document.getElementById('naturalResult').style.display = 'none';
+  document.getElementById('naturalLoading').style.display = 'none';
+  document.getElementById('naturalError').style.display = 'none';
+  document.getElementById('naturalAnalyzeBtn').style.display = '';
+  document.getElementById('naturalSaveBtn').style.display = 'none';
+  pendingNaturalEvent = null;
+  document.getElementById('naturalModal').classList.add('show');
+  setTimeout(() => document.getElementById('naturalInput').focus(), 50);
+}
+function closeNaturalModal() {
+  document.getElementById('naturalModal').classList.remove('show');
+  pendingNaturalEvent = null;
+}
+window.closeNaturalModal = closeNaturalModal;
+
+document.getElementById('calAddAiBtn').addEventListener('click', openNaturalModal);
+
+document.getElementById('naturalModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeNaturalModal();
+});
+
+// JSON 추출 (마크다운 코드블록 등 제거)
+function extractJsonFromText(text) {
+  let t = text.trim();
+  const codeMatch = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeMatch) t = codeMatch[1].trim();
+  const braceMatch = t.match(/\{[\s\S]*\}/);
+  if (braceMatch) t = braceMatch[0];
+  return t;
+}
+
+document.getElementById('naturalAnalyzeBtn').addEventListener('click', async () => {
+  const text = document.getElementById('naturalInput').value.trim();
+  if (!text) return showToast('일정 내용을 입력해주세요');
+
+  const apiKeys = JSON.parse(localStorage.getItem('lifeos-api-keys') || '{}');
+  if (!apiKeys.google) {
+    showToast('Gemini API 키를 먼저 설정해주세요');
+    if (typeof openSettingsModal === 'function') openSettingsModal();
+    return;
+  }
+
+  document.getElementById('naturalAnalyzeBtn').disabled = true;
+  document.getElementById('naturalError').style.display = 'none';
+  document.getElementById('naturalResult').style.display = 'none';
+  document.getElementById('naturalLoading').style.display = '';
+
+  try {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const dayName = ['일','월','화','수','목','금','토'][today.getDay()];
+
+    const prompt = `다음 한국어 자연어 일정을 분석해서 JSON으로만 답해주세요. 마크다운 코드블록이나 다른 설명 없이 순수 JSON만 출력하세요.
+
+오늘 날짜: ${todayStr} (${dayName}요일)
+
+입력: "${text}"
+
+출력 형식 (반드시 이 형식만):
+{
+  "title": "일정 제목 (간결하게)",
+  "date": "YYYY-MM-DD",
+  "time": "HH:MM" 또는 빈 문자열 "",
+  "notes": "추가 메모 또는 빈 문자열 ''",
+  "icon": "이 12개 중 하나: 📌 🏥 💼 🎉 🍽️ ✈️ 🎂 💊 📞 🛒 ❤️ 📅"
+}
+
+규칙:
+- 한국어 날짜 표현 정확히 변환 (내일, 모레, 다음 주 화요일, 5월 5일 등)
+- 시간은 24시간 형식 (오후 3시 = 15:00, 저녁 8시 = 20:00, 새벽 1시 = 01:00)
+- 시간 미언급이면 time을 빈 문자열로
+- 제목은 핵심 내용만 (예: "산부인과 진료", "가족 모임")
+- 일정 내용에 어울리는 아이콘 선택 (병원=🏥, 식사=🍽️, 모임=🎉, 일=💼)
+- 날짜가 애매하면 가까운 미래로`;
+
+    // Gemini 호출 (메인 페이지의 callGemini 함수 사용)
+    const response = await callGemini([{ role: 'user', content: prompt }]);
+
+    // JSON 파싱
+    const jsonText = extractJsonFromText(response);
+    const parsed = JSON.parse(jsonText);
+
+    if (!parsed.title || !parsed.date) {
+      throw new Error('제목과 날짜를 인식하지 못했어요. 다른 표현으로 다시 시도해주세요');
+    }
+
+    pendingNaturalEvent = parsed;
+
+    // 결과 표시 (수정 가능)
+    document.getElementById('naturalTitle').value = parsed.title;
+    document.getElementById('naturalDate').value = parsed.date;
+    document.getElementById('naturalTime').value = parsed.time || '';
+    document.getElementById('naturalIcon').value = parsed.icon || '📌';
+
+    document.getElementById('naturalLoading').style.display = 'none';
+    document.getElementById('naturalResult').style.display = '';
+    document.getElementById('naturalAnalyzeBtn').style.display = 'none';
+    document.getElementById('naturalSaveBtn').style.display = '';
+  } catch(err) {
+    document.getElementById('naturalLoading').style.display = 'none';
+    document.getElementById('naturalError').textContent = '❌ ' + (err.message || '분석 실패');
+    document.getElementById('naturalError').style.display = '';
+  } finally {
+    document.getElementById('naturalAnalyzeBtn').disabled = false;
+  }
+});
+
+// 자연어 결과 저장
+document.getElementById('naturalSaveBtn').addEventListener('click', () => {
+  if (!pendingNaturalEvent) return;
+
+  const title = document.getElementById('naturalTitle').value.trim();
+  const date = document.getElementById('naturalDate').value;
+  if (!title) return showToast('제목을 입력해주세요');
+  if (!date) return showToast('날짜를 입력해주세요');
+
+  const event = {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+    date,
+    title,
+    time: document.getElementById('naturalTime').value || '',
+    notes: pendingNaturalEvent.notes || '',
+    icon: document.getElementById('naturalIcon').value || '📌',
+    source: 'manual',
+  };
+
+  let events = loadManualEvents();
+  events.push(event);
+  saveManualEvents(events);
+
+  closeNaturalModal();
+  showToast('✨ 일정이 추가되었어요');
+
+  // 추가한 날짜로 이동
+  const [y, m] = event.date.split('-').map(Number);
+  calState.viewYear = y;
+  calState.viewMonth = m - 1;
+  calState.selectedDate = event.date;
+  renderCalendar();
+});
+
+// ============================
+// 🔔 알림 시스템
+// ============================
+
+const NOTIF_STORAGE = 'lifeos-notif-state-v1';
+const notificationsSent = new Set();
+
+function loadNotifState() {
+  try {
+    const raw = localStorage.getItem(NOTIF_STORAGE);
+    return raw ? JSON.parse(raw) : { dismissedDate: null };
+  } catch(e) { return { dismissedDate: null }; }
+}
+function saveNotifState(state) {
+  localStorage.setItem(NOTIF_STORAGE, JSON.stringify(state));
+}
+
+// 알림 권한 요청
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showToast('이 브라우저는 알림을 지원하지 않아요');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    showToast('🔔 이미 알림이 켜져 있어요');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    showToast('알림이 차단됨. 브라우저 설정에서 허용해주세요');
+    return;
+  }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    showToast('🔔 알림이 켜졌어요');
+    new Notification('라이프 OS', {
+      body: '알림이 활성화됐어요. 일정 시간 5분 전에 알려드릴게요!',
+      icon: '/favicon.ico',
+    });
+    updateNotifBtnState();
+  } else {
+    showToast('알림이 거부되었어요');
+  }
+}
+
+function updateNotifBtnState() {
+  const btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  if (!('Notification' in window)) {
+    btn.textContent = '🔕 미지원';
+    btn.disabled = true;
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    btn.textContent = '🔔 켜짐';
+    btn.classList.add('on');
+  } else {
+    btn.textContent = '🔔 알림';
+    btn.classList.remove('on');
+  }
+}
+
+document.getElementById('notifBtn').addEventListener('click', requestNotificationPermission);
+
+// 오늘/내일 일정 배너 표시
+function renderNotifBanner() {
+  const banner = document.getElementById('notifBanner');
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+  // 오늘 이미 닫았으면 숨기기
+  const state = loadNotifState();
+  if (state.dismissedDate === today) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const todayEvents = getEventsByDate(today);
+  const tomorrowEvents = getEventsByDate(tomorrow);
+
+  if (todayEvents.length === 0 && tomorrowEvents.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  let html = '<button class="notif-banner-close" id="notifBannerClose" title="오늘 안 보기">×</button>';
+
+  if (todayEvents.length > 0) {
+    html += `<div class="notif-banner-day">🔔 오늘 일정 ${todayEvents.length}건</div>`;
+    todayEvents.slice(0, 4).forEach(e => {
+      html += `<div class="notif-banner-item">${e.time ? `<span class="time">${escapeHtmlPlaces(e.time)}</span>` : ''}${e.icon || '📌'} ${escapeHtmlPlaces(e.title)}</div>`;
+    });
+  }
+  if (tomorrowEvents.length > 0) {
+    html += `<div class="notif-banner-day" style="margin-top:6px;">📅 내일 일정 ${tomorrowEvents.length}건</div>`;
+    tomorrowEvents.slice(0, 3).forEach(e => {
+      html += `<div class="notif-banner-item">${e.time ? `<span class="time">${escapeHtmlPlaces(e.time)}</span>` : ''}${e.icon || '📌'} ${escapeHtmlPlaces(e.title)}</div>`;
+    });
+  }
+
+  banner.innerHTML = html;
+  banner.className = 'notif-banner';
+  banner.style.display = '';
+
+  document.getElementById('notifBannerClose').addEventListener('click', (e) => {
+    e.stopPropagation();
+    saveNotifState({ dismissedDate: today });
+    banner.style.display = 'none';
+  });
+}
+
+// 시간 알람 체크 (1분마다)
+function checkUpcomingEvents() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const events = getEventsByDate(today).filter(e => e.time);
+
+  events.forEach(e => {
+    const notifKey = `${today}-${e.id}`;
+    if (notificationsSent.has(notifKey)) return;
+
+    const [h, m] = e.time.split(':').map(Number);
+    const eventTime = new Date(now);
+    eventTime.setHours(h, m, 0, 0);
+
+    const diffMin = (eventTime - now) / 1000 / 60;
+
+    // 5분 전 ~ 시작 시간 사이
+    if (diffMin > -1 && diffMin <= 5) {
+      try {
+        new Notification('🔔 ' + (e.title || '일정 알람'), {
+          body: `${e.icon || '📌'} ${e.time} 시작${e.notes ? '\n' + e.notes.slice(0, 80) : ''}`,
+          tag: e.id,
+          requireInteraction: false,
+        });
+        notificationsSent.add(notifKey);
+      } catch(err) {
+        console.warn('Notification failed', err);
+      }
+    }
+  });
+}
+
+// 1분마다 체크
+setInterval(checkUpcomingEvents, 60000);
+// 페이지 로드 시 즉시 체크 (5초 후, callGemini 등 모두 로드된 후)
+setTimeout(checkUpcomingEvents, 5000);
+
+// 초기화
+updateNotifBtnState();
+renderNotifBanner();
+
+// 달력 네비게이션
+document.getElementById('calPrev').addEventListener('click', () => {
+  calState.viewMonth--;
+  if (calState.viewMonth < 0) { calState.viewMonth = 11; calState.viewYear--; }
+  renderCalendar();
+});
+document.getElementById('calNext').addEventListener('click', () => {
+  calState.viewMonth++;
+  if (calState.viewMonth > 11) { calState.viewMonth = 0; calState.viewYear++; }
+  renderCalendar();
+});
+document.getElementById('calToday').addEventListener('click', () => {
+  const t = new Date();
+  calState.viewYear = t.getFullYear();
+  calState.viewMonth = t.getMonth();
+  calState.selectedDate = t.toISOString().slice(0, 10);
+  renderCalendar();
+});
+
+// 초기 렌더
+renderCalendar();
+
+// ============================
+// 🤖 AI 어시스턴트 검색
+// ============================
+
+// 미니 토스트
+let toastTimer;
+function showToast(msg) {
+  let t = document.querySelector('.toast-mini');
+  if (!t) {
+    t = document.createElement('div');
+    t.className = 'toast-mini';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// 클립보드 복사
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); document.body.removeChild(ta); return true; }
+    catch(e2) { document.body.removeChild(ta); return false; }
+  }
+}
+
+// AI 외부 서비스 (Claude, ChatGPT, Perplexity, 네이버) 처리
+const EXTERNAL_AI_SERVICES = {
+  claude: {
+    name: 'Claude',
+    urlWithQuery: () => 'https://claude.ai/new',
+    fallbackUrl: 'https://claude.ai/new',
+    autoFill: false,
+  },
+  chatgpt: {
+    name: 'ChatGPT',
+    urlWithQuery: (q) => `https://chatgpt.com/?q=${encodeURIComponent(q)}`,
+    fallbackUrl: 'https://chatgpt.com/',
+    autoFill: true,
+  },
+  perplexity: {
+    name: 'Perplexity',
+    urlWithQuery: (q) => `https://www.perplexity.ai/search?q=${encodeURIComponent(q)}`,
+    fallbackUrl: 'https://www.perplexity.ai/',
+    autoFill: true,
+  },
+  naver: {
+    name: '네이버',
+    urlWithQuery: (q) => `https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`,
+    fallbackUrl: 'https://www.naver.com/',
+    autoFill: true,
+  },
+};
+
+// 외부 링크 버튼 핸들러
+document.querySelectorAll('.ext-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const aiKey = btn.dataset.ai;
+    const svc = EXTERNAL_AI_SERVICES[aiKey];
+    if (!svc) return;
+    const query = document.getElementById('aiSearchInput').value.trim();
+    if (!query) {
+      window.open(svc.fallbackUrl, '_blank');
+      return;
+    }
+    if (svc.autoFill) {
+      window.open(svc.urlWithQuery(query), '_blank');
+      showToast(`${svc.name}에서 검색 중...`);
+    } else {
+      // Claude: 클립보드 복사 + 새 탭
+      const ok = await copyToClipboard(query);
+      window.open(svc.fallbackUrl, '_blank');
+      if (ok) showToast(`📋 질문이 복사되었습니다. ${svc.name}에서 붙여넣기 하세요`);
+      else showToast(`${svc.name} 페이지를 열었습니다`);
+    }
+  });
+});
+
+// 검색 버튼 = Gemini 인라인 답변
+document.getElementById('searchBtn').addEventListener('click', () => {
+  searchWithGemini();
+});
+
+// Enter 키도 검색
+document.getElementById('aiSearchInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    searchWithGemini();
+  }
+});
+
+async function searchWithGemini() {
+  const input = document.getElementById('aiSearchInput');
+  const query = input.value.trim();
+  if (!query) {
+    showToast('질문을 입력해주세요');
+    return;
+  }
+
+  if (!apiKeys.google) {
+    showToast('✨ Gemini API 키를 먼저 설정해주세요 (⚙️)');
+    openSettingsModal();
+    return;
+  }
+
+  const answerEl = document.getElementById('aiAnswer');
+  const bodyEl = document.getElementById('answerBody');
+  const labelEl = document.querySelector('.answer-label');
+  const searchBtn = document.getElementById('searchBtn');
+
+  if (labelEl) labelEl.textContent = '✨ Gemini';
+  answerEl.style.display = '';
+  bodyEl.innerHTML = '<div class="answer-loading"><div class="answer-dot"></div><div class="answer-dot"></div><div class="answer-dot"></div></div>';
+  searchBtn.disabled = true;
+
+  // 답변 영역으로 부드럽게 스크롤
+  setTimeout(() => answerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+
+  try {
+    const messages = [{ role: 'user', content: query }];
+    const response = await callGemini(messages);
+    bodyEl.innerHTML = renderMarkdown(response);
+  } catch (err) {
+    bodyEl.innerHTML = `<p style="color:#B91C1C;">❌ ${escapeHtmlForChat(err.message)}</p>`;
+  } finally {
+    searchBtn.disabled = false;
+  }
+}
+
+// ============================
+// 🏠 우리집 AI 비서 (전 모듈 데이터 활용)
+// ============================
+
+async function askAssistant() {
+  const input = document.getElementById('aiSearchInput');
+  const query = input.value.trim();
+  if (!query) {
+    showToast('질문을 입력해주세요');
+    return;
+  }
+
+  if (!apiKeys.google) {
+    showToast('✨ Gemini API 키를 먼저 설정해주세요 (⚙️)');
+    openSettingsModal();
+    return;
+  }
+
+  const answerEl = document.getElementById('aiAnswer');
+  const bodyEl = document.getElementById('answerBody');
+  const labelEl = document.querySelector('.answer-label');
+  const heroBtn = document.getElementById('heroAssistantBtn');
+
+  if (labelEl) labelEl.textContent = '🏠 우리집 비서';
+  answerEl.style.display = '';
+  bodyEl.innerHTML = '<div class="answer-loading"><div class="answer-dot"></div><div class="answer-dot"></div><div class="answer-dot"></div></div>';
+  if (heroBtn) heroBtn.disabled = true;
+
+  setTimeout(() => answerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+
+  try {
+    const context = collectAllContext();
+    const prompt = buildAssistantPrompt(context, query);
+    const messages = [{ role: 'user', content: prompt }];
+    const response = await callGemini(messages);
+    bodyEl.innerHTML = renderMarkdown(response);
+  } catch (err) {
+    bodyEl.innerHTML = `<p style="color:#B91C1C;">❌ ${escapeHtmlForChat(err.message)}</p>`;
+  } finally {
+    if (heroBtn) heroBtn.disabled = false;
+  }
+}
+
+// 기존 assistantBtn 제거됨 (Hero로 통합)
+
+// 모든 모듈 데이터 수집
+function collectAllContext() {
+  const ctx = {};
+
+  // 1. 가계부
+  try {
+    const raw = localStorage.getItem('gagebu-full-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.gagebu = summarizeGagebu(data);
+    }
+  } catch(e) {}
+
+  // 2. 자녀/임신
+  try {
+    const raw = localStorage.getItem('lifeos-kids-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.kids = summarizeKidsData(data);
+    }
+  } catch(e) {}
+
+  // 3. 건강/식단
+  try {
+    const raw = localStorage.getItem('lifeos-health-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.health = summarizeHealth(data);
+    }
+  } catch(e) {}
+
+  // 4. 여행
+  try {
+    const raw = localStorage.getItem('lifeos-travel-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.travel = summarizeTravel(data);
+    }
+  } catch(e) {}
+
+  // 5. 가전
+  try {
+    const raw = localStorage.getItem('lifeos-home-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.home = summarizeHome(data);
+    }
+  } catch(e) {}
+
+  // 5-1. 집안 관리
+  try {
+    const raw = localStorage.getItem('lifeos-maintenance-v1');
+    if (raw) {
+      const data = JSON.parse(raw);
+      ctx.maintenance = summarizeMaintenance(data);
+    }
+  } catch(e) {}
+
+  // 6. 일정 (자동 통합)
+  try {
+    if (typeof getAllEvents === 'function') {
+      const events = getAllEvents();
+      const today = new Date().toISOString().slice(0, 10);
+      const twoWeeksLater = new Date(Date.now() + 14*86400000).toISOString().slice(0, 10);
+      ctx.events = events
+        .filter(e => e.date >= today && e.date <= twoWeeksLater)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 12);
+    }
+  } catch(e) {}
+
+  return ctx;
+}
+
+function summarizeGagebu(data) {
+  if (!data) return null;
+  // 데이터 구조 추정: transactions 또는 records 또는 entries
+  const trans = data.transactions || data.records || data.entries || data.items || [];
+  if (!Array.isArray(trans) || trans.length === 0) return null;
+
+  const today = new Date();
+  const thisMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+
+  let income = 0, expense = 0;
+  const byCategory = {};
+  let count = 0;
+
+  trans.forEach(t => {
+    const date = t.date || t.datetime || t.created || '';
+    if (!date.startsWith(thisMonth)) return;
+    count++;
+    const amt = Math.abs(parseFloat(t.amount) || 0);
+    const isIncome = t.type === 'income' || t.kind === 'income' || (t.amount && parseFloat(t.amount) > 0 && t.type !== 'expense');
+    if (isIncome) income += amt;
+    else expense += amt;
+    const cat = t.category || t.cat || '기타';
+    if (cat) byCategory[cat] = (byCategory[cat] || 0) + amt;
+  });
+
+  if (count === 0) return null;
+
+  return {
+    thisMonth: { income, expense, count },
+    topCategories: Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).slice(0,5),
+  };
+}
+
+function summarizeKidsData(data) {
+  if (!data) return null;
+  const result = { kids: [] };
+
+  const kids = data.kids || [];
+  kids.forEach(k => {
+    const info = { name: k.name || '아기' };
+    if (k.birthDate) {
+      const birth = new Date(k.birthDate);
+      const now = new Date();
+      if (birth > now) {
+        const days = Math.ceil((birth - now) / 86400000);
+        const weeksAlong = Math.max(0, Math.min(40, Math.floor((280 - days) / 7)));
+        info.dueDate = k.birthDate;
+        info.daysToDue = days;
+        info.weeksAlong = weeksAlong;
+        const tri = weeksAlong < 14 ? '1삼분기' : weeksAlong < 28 ? '2삼분기' : '3삼분기';
+        info.trimester = tri;
+      } else if (!isNaN(birth.getTime())) {
+        const ms = now - birth;
+        const months = Math.floor(ms / (1000*60*60*24*30.44));
+        info.ageMonths = months;
+        info.ageStr = months < 12 ? `${months}개월` : `${Math.floor(months/12)}살 ${months%12}개월`;
+      }
+    }
+    result.kids.push(info);
+  });
+
+  // 육아용품 진행률
+  const shopping = data.shopping || [];
+  if (shopping.length > 0) {
+    const checked = shopping.filter(s => s.checked).length;
+    const bagItems = shopping.filter(s => s.category === 'bag');
+    const homeItems = shopping.filter(s => s.category === 'home');
+    result.shopping = {
+      total: shopping.length,
+      checked,
+      bag: { total: bagItems.length, checked: bagItems.filter(s => s.checked).length },
+      home: { total: homeItems.length, checked: homeItems.filter(s => s.checked).length },
+    };
+    result.missingHigh = shopping
+      .filter(s => !s.checked && s.priority === 'high')
+      .slice(0, 8)
+      .map(s => `${s.name}${s.qty ? `(${s.qty})` : ''}`);
+  }
+
+  // 다가오는 산전검사 (pregnancy.checkups)
+  const preg = data.pregnancy;
+  if (preg && Array.isArray(preg)) {
+    // 임신 기록 entries (kick/checkup/diary 형식)
+    const upcoming = preg
+      .filter(p => p.kind === 'checkup' && p.date)
+      .filter(p => {
+        const d = new Date(p.date);
+        return d >= new Date() && d <= new Date(Date.now() + 60*86400000);
+      })
+      .slice(0, 5);
+    if (upcoming.length > 0) {
+      result.upcomingCheckups = upcoming.map(p => ({ date: p.date, text: p.text || '산전검사' }));
+    }
+  }
+
+  // 다가오는 예방접종
+  const vaccinations = data.vaccinations || [];
+  const upcomingVacc = vaccinations
+    .filter(v => v.scheduledDate && !v.completedDate)
+    .filter(v => {
+      const d = new Date(v.scheduledDate);
+      return d >= new Date() && d <= new Date(Date.now() + 60*86400000);
+    })
+    .slice(0, 5);
+  if (upcomingVacc.length > 0) {
+    result.upcomingVacc = upcomingVacc.map(v => ({ date: v.scheduledDate, name: v.vaccineId || v.name || '예방접종' }));
+  }
+
+  // 마일스톤 수
+  const milestones = data.milestones || [];
+  if (milestones.length > 0) result.milestoneCount = milestones.length;
+
+  return result;
+}
+
+function summarizeHealth(data) {
+  if (!data) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const meals = data.meals || [];
+  const weights = data.weights || [];
+  const exercises = data.exercises || [];
+
+  const todayMeals = meals.filter(m => m.date === today);
+  const todayCal = todayMeals.reduce((s, m) => s + (m.totalCal || 0), 0);
+  const todayProtein = todayMeals.reduce((s, m) => s + (m.totalProtein || 0), 0);
+
+  const sortedW = weights.slice().sort((a, b) => b.date.localeCompare(a.date));
+  const latest = sortedW[0];
+
+  const todayEx = exercises.filter(e => e.date === today);
+  const todayMin = todayEx.reduce((s, e) => s + (e.minutes || 0), 0);
+  const todayExCal = todayEx.reduce((s, e) => s + (e.calories || 0), 0);
+
+  // 이번 주 평균
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().slice(0, 10);
+  const weekMeals = meals.filter(m => m.date >= weekAgo && m.date <= today);
+  const weekDays = new Set(weekMeals.map(m => m.date)).size || 1;
+  const weekAvgCal = Math.round(weekMeals.reduce((s, m) => s + (m.totalCal || 0), 0) / weekDays);
+
+  return {
+    today: { calories: todayCal, protein: todayProtein, exercise: todayMin, exerciseCal: todayExCal },
+    goals: data.goals || {},
+    weight: latest ? {
+      current: latest.weight,
+      date: latest.date,
+      change: sortedW.length > 1 ? +(latest.weight - sortedW[1].weight).toFixed(1) : null,
+    } : null,
+    weekAvgCalories: weekAvgCal,
+  };
+}
+
+function summarizeTravel(data) {
+  if (!data) return null;
+  const trips = data.trips || [];
+  if (trips.length === 0) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = trips
+    .filter(t => {
+      const start = t.startDate || t.start_date;
+      return start && start >= today;
+    })
+    .sort((a, b) => (a.startDate || a.start_date).localeCompare(b.startDate || b.start_date))
+    .slice(0, 3);
+  return {
+    totalTrips: trips.length,
+    upcoming: upcoming.map(t => ({
+      title: t.title || t.name || t.destination || '여행',
+      start: t.startDate || t.start_date,
+      end: t.endDate || t.end_date,
+    })),
+  };
+}
+
+function summarizeHome(data) {
+  if (!data) return null;
+  const devices = data.devices || [];
+  const scenarios = data.scenarios || [];
+  if (devices.length === 0 && scenarios.length === 0) return null;
+  return {
+    deviceCount: devices.length,
+    devicesByCategory: devices.reduce((acc, d) => {
+      const cat = d.category || '기타';
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {}),
+    scenarios: scenarios.slice(0, 5).map(s => s.name || s.title).filter(Boolean),
+  };
+}
+
+function summarizeMaintenance(data) {
+  if (!data) return null;
+  const items = data.items || [];
+  const repairs = data.repairs || [];
+  if (items.length === 0 && repairs.length === 0) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const overdue = [];
+  const upcoming = [];
+
+  items.forEach(item => {
+    if (!item.lastDate) return;
+    const next = new Date(item.lastDate);
+    next.setMonth(next.getMonth() + (item.periodMonths || 3));
+    next.setHours(0, 0, 0, 0);
+    const days = Math.ceil((next - today) / 86400000);
+    if (days < 0) overdue.push({ name: item.name, daysOver: -days });
+    else if (days <= 30) upcoming.push({ name: item.name, days });
+  });
+
+  // 가까운 순
+  overdue.sort((a, b) => b.daysOver - a.daysOver);
+  upcoming.sort((a, b) => a.days - b.days);
+
+  // 최근 1년 수리 비용
+  const oneYearAgo = new Date(today);
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const recentRepairs = repairs.filter(r => r.date && new Date(r.date) >= oneYearAgo);
+  const yearCost = recentRepairs.reduce((s, r) => s + (parseInt(r.cost) || 0), 0);
+
+  return {
+    totalItems: items.length,
+    overdue: overdue.slice(0, 5),
+    upcoming: upcoming.slice(0, 5),
+    repairCount: repairs.length,
+    yearRepairCost: yearCost,
+    recentRepairs: recentRepairs.slice(-3).reverse().map(r => ({
+      name: r.name, date: r.date, cost: parseInt(r.cost) || 0,
+    })),
+  };
+}
+
+function buildAssistantPrompt(context, query) {
+  const today = new Date();
+  const todayStr = today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  let prompt = `당신은 사용자의 "라이프 OS" 통합 비서입니다. 사용자의 가족 관리, 임신/육아, 건강, 가계, 일정 데이터를 모두 알고 있습니다. 친근하고 따뜻한 말투로 구체적이고 도움되는 답변을 해주세요.
+
+[현재 시점]
+${todayStr}, ${timeStr}
+
+`;
+
+  // 자녀/임신 정보 (가장 우선)
+  if (context.kids && context.kids.kids && context.kids.kids.length > 0) {
+    prompt += `[자녀/임신 정보]\n`;
+    context.kids.kids.forEach(k => {
+      if (k.daysToDue != null) {
+        prompt += `- ${k.name} 출산 예정일: ${k.dueDate} (D-${k.daysToDue}, 약 ${k.weeksAlong}주차, ${k.trimester})\n`;
+      } else if (k.ageStr) {
+        prompt += `- ${k.name}: 생후 ${k.ageStr}\n`;
+      }
+    });
+    if (context.kids.shopping) {
+      const sh = context.kids.shopping;
+      prompt += `- 육아용품: 전체 ${sh.checked}/${sh.total}, 출산가방 ${sh.bag.checked}/${sh.bag.total}, 집준비 ${sh.home.checked}/${sh.home.total}\n`;
+      if (context.kids.missingHigh && context.kids.missingHigh.length > 0) {
+        prompt += `- 미체크 필수 용품: ${context.kids.missingHigh.join(', ')}\n`;
+      }
+    }
+    if (context.kids.upcomingCheckups) {
+      prompt += `- 다가오는 산전검사: ${context.kids.upcomingCheckups.map(c => `${c.date} ${c.text}`).join('; ')}\n`;
+    }
+    if (context.kids.upcomingVacc) {
+      prompt += `- 다가오는 예방접종: ${context.kids.upcomingVacc.map(v => `${v.date} ${v.name}`).join('; ')}\n`;
+    }
+    if (context.kids.milestoneCount) prompt += `- 등록된 마일스톤: ${context.kids.milestoneCount}개\n`;
+    prompt += '\n';
+  }
+
+  // 건강
+  if (context.health) {
+    const h = context.health;
+    prompt += `[건강/식단]\n`;
+    if (h.today.calories > 0) {
+      prompt += `- 오늘 섭취: ${h.today.calories}kcal`;
+      if (h.goals.dailyCalories) prompt += ` (목표 ${h.goals.dailyCalories}kcal, ${Math.round(h.today.calories/h.goals.dailyCalories*100)}%)`;
+      prompt += `\n`;
+      if (h.today.protein > 0) prompt += `- 오늘 단백질: ${Math.round(h.today.protein)}g\n`;
+    }
+    if (h.today.exercise > 0) {
+      prompt += `- 오늘 운동: ${h.today.exercise}분, ${h.today.exerciseCal}kcal 소비\n`;
+    }
+    if (h.weight) {
+      prompt += `- 최근 체중: ${h.weight.current}kg (${h.weight.date})`;
+      if (h.weight.change != null) prompt += `, 이전 대비 ${h.weight.change > 0 ? '+' : ''}${h.weight.change}kg`;
+      prompt += `\n`;
+    }
+    if (h.weekAvgCalories > 0) prompt += `- 이번 주 평균: ${h.weekAvgCalories}kcal/일\n`;
+    prompt += '\n';
+  }
+
+  // 일정
+  if (context.events && context.events.length > 0) {
+    prompt += `[다가오는 일정 (2주)]\n`;
+    context.events.slice(0, 10).forEach(e => {
+      prompt += `- ${e.date}${e.time ? ' ' + e.time : ''}: ${e.icon || ''} ${e.title}\n`;
+    });
+    prompt += '\n';
+  }
+
+  // 가계부
+  if (context.gagebu) {
+    const g = context.gagebu;
+    prompt += `[가계부 (이번 달)]\n`;
+    if (g.thisMonth.expense > 0) {
+      prompt += `- 지출: ${(g.thisMonth.expense / 10000).toFixed(0)}만원`;
+      if (g.thisMonth.income > 0) prompt += ` / 수입: ${(g.thisMonth.income / 10000).toFixed(0)}만원`;
+      prompt += `\n`;
+    }
+    if (g.topCategories.length > 0) {
+      prompt += `- 주요 지출: ${g.topCategories.slice(0,3).map(([cat, amt]) => `${cat} ${(amt/10000).toFixed(0)}만원`).join(', ')}\n`;
+    }
+    prompt += '\n';
+  }
+
+  // 여행
+  if (context.travel && context.travel.upcoming.length > 0) {
+    prompt += `[다가오는 여행]\n`;
+    context.travel.upcoming.forEach(t => {
+      prompt += `- ${t.start}~${t.end}: ${t.title}\n`;
+    });
+    prompt += '\n';
+  }
+
+  // 가전
+  if (context.home) {
+    prompt += `[가전 (스마트홈)]\n`;
+    prompt += `- 등록 가전: ${context.home.deviceCount}대`;
+    const cats = Object.entries(context.home.devicesByCategory);
+    if (cats.length > 0) prompt += ` (${cats.map(([k,v])=>`${k} ${v}`).join(', ')})`;
+    prompt += `\n`;
+    if (context.home.scenarios && context.home.scenarios.length > 0) {
+      prompt += `- 자동화 시나리오: ${context.home.scenarios.join(', ')}\n`;
+    }
+    prompt += '\n';
+  }
+
+  // 집안 관리
+  if (context.maintenance) {
+    const m = context.maintenance;
+    prompt += `[집안 관리]\n`;
+    prompt += `- 등록 항목 ${m.totalItems}개\n`;
+    if (m.overdue.length > 0) {
+      prompt += `- ⚠️ 기한 지난 항목: ${m.overdue.map(o => `${o.name}(${o.daysOver}일 지남)`).join(', ')}\n`;
+    }
+    if (m.upcoming.length > 0) {
+      prompt += `- ⏰ 곧 관리할 항목: ${m.upcoming.map(u => `${u.name}(${u.days}일 후)`).join(', ')}\n`;
+    }
+    if (m.repairCount > 0) {
+      prompt += `- 누적 수리 ${m.repairCount}건, 최근 1년 비용 ${(m.yearRepairCost / 10000).toFixed(0)}만원\n`;
+    }
+    if (m.recentRepairs.length > 0) {
+      prompt += `- 최근 수리: ${m.recentRepairs.map(r => `${r.date} ${r.name}(${(r.cost/10000).toFixed(0)}만원)`).join(', ')}\n`;
+    }
+    prompt += '\n';
+  }
+
+  // 데이터 없음 안내
+  const hasAnyData = context.kids || context.health || context.gagebu || context.travel || context.home || context.maintenance || (context.events && context.events.length > 0);
+  if (!hasAnyData) {
+    prompt += `[알림] 사용자의 라이프 OS에 아직 등록된 데이터가 거의 없습니다. 일반적인 답변을 드리되, 데이터를 등록하면 더 맞춤 답변이 가능하다고 안내해주세요.\n\n`;
+  }
+
+  prompt += `[사용자 질문]
+${query}
+
+[답변 규칙]
+- 한국어로 친근하게 (반말은 피하고 존댓말)
+- 위 데이터를 자연스럽게 인용
+- 임산부/산모 배려 (관련 시)
+- 구체적이고 실용적인 조언
+- 너무 길지 않게 (보통 3-7문장, 필요시 목록)
+- 데이터에 없는 내용은 추측하지 말고 일반 정보로`;
+
+  return prompt;
+}
+
+// 답변 닫기
+document.getElementById('answerClose').addEventListener('click', () => {
+  document.getElementById('aiAnswer').style.display = 'none';
+});
+
+// ============================
+// 🤖 Gemini API + 설정 모달
+// ============================
+
+const API_KEYS_STORAGE = 'lifeos-api-keys';
+
+function loadApiKeys() {
+  try {
+    const raw = localStorage.getItem(API_KEYS_STORAGE);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) {
+    return {};
+  }
+}
+function saveApiKeysToStorage(keys) {
+  localStorage.setItem(API_KEYS_STORAGE, JSON.stringify(keys));
+}
+let apiKeys = loadApiKeys();
+
+// 마크다운 → HTML
+function escapeHtmlForChat(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderMarkdown(text) {
+  let html = escapeHtmlForChat(text);
+  html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${code.trim()}</code></pre>`);
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/^### (.+)$/gm, '<strong>$1</strong>');
+  html = html.replace(/^## (.+)$/gm, '<strong>$1</strong>');
+  html = html.replace(/^# (.+)$/gm, '<strong>$1</strong>');
+  html = html.replace(/^[-*] (.+)$/gm, '• $1');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '$1. $2');
+  return '<p>' + html.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+}
+
+// API 호출: Gemini
+async function callGemini(messages) {
+  if (!apiKeys.google) throw new Error('Google API 키가 설정되지 않았습니다');
+  const model = apiKeys.googleModel || 'gemini-2.5-flash';
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKeys.google}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contents })
+  });
+  if (!res.ok) {
+    let errMsg = `${res.status}`;
+    try {
+      const err = await res.json();
+      errMsg += ` ${err.error?.message || JSON.stringify(err).slice(0,200)}`;
+    } catch(e) {}
+    throw new Error(`Gemini API: ${errMsg}`);
+  }
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했습니다';
+}
+
+// 설정 모달
+function openSettingsModal() {
+  document.getElementById('apiKeyGoogle').value = apiKeys.google || '';
+  document.getElementById('apiModelGemini').value = apiKeys.googleModel || '';
+  document.getElementById('apiKeyKakao').value = apiKeys.kakao || '';
+  document.getElementById('settingsModal').classList.add('show');
+}
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+// 이벤트 핸들러 등록
+document.getElementById('aiSettingsBtn').addEventListener('click', () => openSettingsModal());
+
+// 설정 모달 - 저장
+document.getElementById('btnSettingsSave').addEventListener('click', () => {
+  apiKeys.google = document.getElementById('apiKeyGoogle').value.trim();
+  apiKeys.googleModel = document.getElementById('apiModelGemini').value.trim();
+  apiKeys.kakao = document.getElementById('apiKeyKakao').value.trim();
+  saveApiKeysToStorage(apiKeys);
+  closeSettingsModal();
+  showToast('✅ API 키가 저장되었습니다');
+});
+document.getElementById('btnSettingsCancel').addEventListener('click', closeSettingsModal);
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSettingsModal();
+});
+
+// ============================
+// 🍜 내 주변 맛집
+// ============================
+
+let userLocation = null; // {lat, lng, address}
+let selectedCategory = '맛집';
+
+// 세부 카테고리 데이터
+const SUBCATEGORIES = {
+  '맛집': ['맛집', '인기 맛집', '근처 맛집', '신상 맛집'],
+  '한식': ['백반', '제육볶음', '김치찌개', '된장찌개', '순두부', '칼국수', '냉면', '비빔밥', '감자탕', '국밥', '족발', '보쌈', '삼겹살', '곱창', '회', '돼지국밥', '치킨', '닭갈비'],
+  '중식': ['짜장면', '짬뽕', '탕수육', '마라탕', '마라샹궈', '딤섬', '양꼬치', '훠궈', '북경오리', '중국집', '중화요리'],
+  '일식': ['초밥', '라멘', '우동', '돈카츠', '카레', '덮밥', '규동', '오마카세', '이자카야', '튀김'],
+  '양식': ['파스타', '피자', '스테이크', '햄버거', '샐러드', '리조또', '브런치', '멕시칸'],
+  '카페': ['커피', '디저트', '베이커리', '브런치 카페', '아이스크림', '버블티', '와플', '빙수'],
+  '술집': ['호프집', '이자카야', '와인바', '포차', '막걸리집', '소주방', '맥주집']
+};
+
+// 카테고리 클릭 → 세부 메뉴 팝업
+document.querySelectorAll('.food-cat').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cat = btn.dataset.cat;
+    openSubcatModal(cat, btn);
+  });
+});
+
+function openSubcatModal(category, sourceBtn) {
+  const subs = SUBCATEGORIES[category] || [category];
+  document.getElementById('subcatTitle').textContent = `${sourceBtn?.textContent.trim() || category} 메뉴`;
+  document.getElementById('subcatGrid').innerHTML = subs.map(s =>
+    `<button class="subcat-btn" data-keyword="${escapeHtmlPlaces(s)}">${escapeHtmlPlaces(s)}</button>`
+  ).join('');
+
+  // 세부 메뉴 클릭 핸들러
+  document.querySelectorAll('.subcat-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const keyword = b.dataset.keyword;
+      closeSubcatModal();
+
+      // 카테고리 표시 업데이트
+      document.querySelectorAll('.food-cat').forEach(b2 => b2.style.background = '');
+      if (sourceBtn) sourceBtn.style.background = '#FEF3C7';
+
+      // 검색
+      selectedCategory = keyword;
+      document.getElementById('foodCustomQuery').value = '';
+
+      if (!userLocation) {
+        showToast(`"${keyword}" 선택됨. 내 위치 찾기 버튼을 눌러주세요`);
+        return;
+      }
+      showNearbyPlaces(keyword);
+    });
+  });
+
+  document.getElementById('subcatModal').classList.add('show');
+}
+
+function closeSubcatModal() {
+  document.getElementById('subcatModal').classList.remove('show');
+}
+window.closeSubcatModal = closeSubcatModal;
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('subcatModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeSubcatModal();
+});
+
+// 직접 검색어 입력 후 Enter
+document.getElementById('foodCustomQuery').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    if (!q) return;
+    if (!userLocation) {
+      showToast('먼저 내 위치를 찾아주세요');
+      return;
+    }
+    document.querySelectorAll('.food-cat').forEach(b => b.style.background = '');
+    selectedCategory = q;
+    showNearbyPlaces(q);
+  }
+});
+
+// 위치 찾기
+document.getElementById('findLocationBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('findLocationBtn');
+  const status = document.getElementById('locationStatus');
+
+  if (!navigator.geolocation) {
+    showToast('이 브라우저는 위치 서비스를 지원하지 않습니다');
+    return;
+  }
+
+  btn.classList.add('locating');
+  btn.textContent = '📍 위치 찾는 중...';
+  status.textContent = '위치를 가져오고 있습니다...';
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude, longitude } = pos.coords;
+    userLocation = { lat: latitude, lng: longitude, address: null };
+
+    // Reverse geocoding (카카오 API 키 있으면 카카오로, 없으면 OSM)
+    try {
+      if (apiKeys.kakao) {
+        const res = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${longitude}&y=${latitude}`, {
+          headers: { 'Authorization': `KakaoAK ${apiKeys.kakao}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // 행정동 우선, 없으면 법정동
+          const region = data.documents?.find(d => d.region_type === 'H') || data.documents?.[0];
+          if (region) {
+            userLocation.address = `${region.region_2depth_name} ${region.region_3depth_name}`.trim();
+          }
+        }
+      }
+      if (!userLocation.address) {
+        // OSM Nominatim fallback
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=14&addressdetails=1&accept-language=ko`);
+        if (res.ok) {
+          const data = await res.json();
+          const a = data.address || {};
+          const parts = [a.city || a.county, a.borough || a.suburb, a.quarter || a.neighbourhood || a.village].filter(Boolean);
+          userLocation.address = parts.length > 0 ? parts.join(' ') : (data.display_name || '내 위치');
+        }
+      }
+    } catch (e) {
+      console.warn('Reverse geocoding failed', e);
+    }
+
+    btn.classList.remove('locating');
+    btn.classList.add('found');
+    btn.textContent = `✅ ${userLocation.address || '위치 찾음'} · 다시 찾기`;
+    status.textContent = `📍 ${userLocation.address || '내 위치 찾음'}`;
+    document.getElementById('locationServices').classList.add('show');
+    showToast('위치를 찾았어요!');
+
+    // 카테고리가 이미 선택되어 있으면 자동 검색
+    if (selectedCategory && document.querySelector('.food-cat[style*="FEF3C7"]')) {
+      showNearbyPlaces(selectedCategory);
+    }
+  }, (err) => {
+    btn.classList.remove('locating');
+    btn.textContent = '📍 내 위치 찾기';
+    let msg = '위치를 가져올 수 없어요';
+    if (err.code === 1) msg = '위치 권한이 거부되었어요. 브라우저 설정에서 허용해주세요';
+    else if (err.code === 2) msg = '위치를 사용할 수 없어요';
+    else if (err.code === 3) msg = '시간이 초과되었어요';
+    status.textContent = msg;
+    showToast(msg);
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+});
+
+// 카카오 Local API로 인근 매장 검색
+async function searchKakaoPlaces(query, lat, lng) {
+  if (!apiKeys.kakao) {
+    throw new Error('카카오 REST API 키가 설정되지 않았습니다');
+  }
+  const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&x=${lng}&y=${lat}&radius=2000&size=10&sort=distance`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `KakaoAK ${apiKeys.kakao}` }
+  });
+  if (!res.ok) {
+    let errMsg = `카카오 API 오류: ${res.status}`;
+    try {
+      const err = await res.json();
+      if (err.message) errMsg += ` - ${err.message}`;
+    } catch(e) {}
+    if (res.status === 401) errMsg += ' (API 키가 잘못되었어요)';
+    if (res.status === 403) errMsg += ' (앱 설정에서 카카오맵 사용설정 ON, 플랫폼에 도메인 등록 필요)';
+    throw new Error(errMsg);
+  }
+  const data = await res.json();
+  return data.documents || [];
+}
+
+function escapeHtmlPlaces(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 매장 리스트 표시
+async function showNearbyPlaces(query) {
+  if (!userLocation) {
+    showToast('먼저 내 위치를 찾아주세요');
+    return;
+  }
+  const listEl = document.getElementById('placesList');
+  const loadingEl = document.getElementById('placesLoading');
+  const emptyEl = document.getElementById('placesEmpty');
+
+  loadingEl.style.display = '';
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = '';
+
+  if (!apiKeys.kakao) {
+    loadingEl.style.display = 'none';
+    listEl.innerHTML = `
+      <div class="places-warn">
+        💡 인앱 매장 리스트를 보려면 <strong>카카오 REST API 키</strong>가 필요해요 (무료, 5분).
+        <button class="btn-inline" id="btnInlineSettings">⚙️ 설정 열기</button>
+        <div style="margin-top:6px;font-size:11px;">아래 외부 앱 버튼은 키 없이도 사용 가능합니다</div>
+      </div>
+    `;
+    document.getElementById('btnInlineSettings')?.addEventListener('click', openSettingsModal);
+    return;
+  }
+
+  try {
+    const places = await searchKakaoPlaces(query, userLocation.lat, userLocation.lng);
+    loadingEl.style.display = 'none';
+
+    if (places.length === 0) {
+      listEl.innerHTML = `<div class="places-empty">"${escapeHtmlPlaces(query)}" 검색 결과가 없어요. 다른 키워드를 시도해보세요</div>`;
+      return;
+    }
+
+    listEl.innerHTML = `
+      <div style="font-size:11.5px;color:var(--text-secondary);font-weight:500;margin:2px 4px 4px;">
+        🔍 "${escapeHtmlPlaces(query)}" · ${places.length}개 결과 · 가까운 순
+      </div>
+    ` + places.map((p, i) => {
+      const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+      const rankClass = i < 3 ? 'medal' : '';
+      const distance = p.distance ? (parseInt(p.distance) < 1000 ? `${p.distance}m` : `${(parseInt(p.distance)/1000).toFixed(1)}km`) : '';
+      const categoryRaw = p.category_name || '';
+      const category = categoryRaw.split(' > ').slice(-1)[0] || p.category_group_name || '';
+      const addr = p.road_address_name || p.address_name || '';
+      const placeUrl = p.place_url || `https://map.kakao.com/?q=${encodeURIComponent(p.place_name)}`;
+      return `
+        <div class="place-card" data-url="${escapeHtmlPlaces(placeUrl)}">
+          <div class="place-rank ${rankClass}">${rank}</div>
+          <div class="place-info">
+            <div class="place-name">${escapeHtmlPlaces(p.place_name)}</div>
+            <div class="place-meta">${category ? escapeHtmlPlaces(category) : ''}${addr ? (category ? ' · ' : '') + escapeHtmlPlaces(addr) : ''}</div>
+          </div>
+          <div class="place-distance">${distance}</div>
+        </div>
+      `;
+    }).join('');
+
+    // 매장 클릭 시 카카오맵 상세로 이동
+    listEl.querySelectorAll('.place-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const url = card.dataset.url;
+        if (url) window.open(url, '_blank');
+      });
+    });
+  } catch(err) {
+    loadingEl.style.display = 'none';
+    listEl.innerHTML = `<div class="places-warn">⚠️ ${escapeHtmlPlaces(err.message)}</div>`;
+  }
+}
+
+// 외부 앱 빠른 진입
+document.querySelectorAll('.svc-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const svc = btn.dataset.svc;
+    const customQuery = document.getElementById('foodCustomQuery').value.trim();
+    const query = customQuery || selectedCategory;
+    const address = userLocation?.address || '';
+
+    // 검색어 = "동네 + 카테고리"
+    const fullQuery = address ? `${address} ${query}` : query;
+    const lat = userLocation?.lat;
+    const lng = userLocation?.lng;
+
+    let url;
+    let svcLabel = svc;
+    if (svc === 'kakao') {
+      svcLabel = '카카오맵';
+      url = `https://map.kakao.com/?q=${encodeURIComponent(fullQuery)}`;
+    } else if (svc === 'naver') {
+      svcLabel = '네이버지도';
+      url = userLocation
+        ? `https://map.naver.com/v5/search/${encodeURIComponent(query)}?c=${lng},${lat},14,0,0,0,dh`
+        : `https://map.naver.com/v5/search/${encodeURIComponent(query)}`;
+    } else if (svc === 'google') {
+      svcLabel = '구글맵';
+      url = userLocation
+        ? `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${lat},${lng},15z`
+        : `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+    } else if (svc === 'diningcode') {
+      svcLabel = '다이닝코드';
+      url = `https://www.diningcode.com/list.dc?query=${encodeURIComponent(fullQuery)}`;
+    } else if (svc === 'mango') {
+      svcLabel = '망고플레이트';
+      url = `https://www.mangoplate.com/search/${encodeURIComponent(fullQuery)}`;
+    } else if (svc === 'catchtable') {
+      svcLabel = '캐치테이블';
+      // 캐치테이블은 위치 검색이 약함 → 검색어만
+      url = `https://app.catchtable.co.kr/ct/search/${encodeURIComponent(query)}`;
+    }
+
+    if (url) {
+      window.open(url, '_blank');
+      showToast(`${svcLabel}에서 "${query}" 검색`);
+    }
+  });
+});
+</script>
+</body>
+</html>

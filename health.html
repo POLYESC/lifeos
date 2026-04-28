@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>건강 / 식단 · 라이프 OS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --primary: #4F7CFF;
+  --health: #10B981;
+  --health-dark: #047857;
+  --text: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --border: #E2E8F0;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --danger: #EF4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; }
+.back-link:hover { color: var(--primary); }
+.title-block h1 { font-size: 22px; letter-spacing: -0.02em; margin-bottom: 2px; }
+.title-block .subtitle { font-size: 12px; color: var(--text-tertiary); letter-spacing: 0.05em; }
+
+.banner {
+  background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+  color: #fff; border-radius: 16px; padding: 22px;
+  margin-bottom: 20px;
+}
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.banner-stat .label { font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 500; margin-bottom: 4px; }
+.banner-stat .value { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.banner-stat .sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+.banner-progress {
+  margin-top: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.banner-progress-bar {
+  height: 100%;
+  background: #fff;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.section-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.section-tab { padding: 10px 16px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; white-space: nowrap; }
+.section-tab.active { color: var(--health); border-bottom-color: var(--health); }
+.section-pane { display: none; }
+.section-pane.active { display: block; }
+
+.section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+.section-head h2 { font-size: 15px; font-weight: 700; }
+.section-head .section-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+
+.btn {
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  font-family: inherit; transition: all 0.15s;
+}
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--health); color: #fff; border-color: var(--health); }
+.btn.primary:hover { filter: brightness(0.95); }
+.btn.danger { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+.btn.small { padding: 5px 9px; font-size: 11px; }
+.btn.disabled, .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.date-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.date-nav .nav-btn {
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  width: 36px; height: 36px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.date-nav .nav-btn:hover { background: var(--bg); }
+.date-nav .current-date { flex: 1; text-align: center; font-size: 14px; font-weight: 600; }
+.date-nav .today-btn { font-size: 11px; }
+
+/* === 식단 탭 === */
+.meal-upload-card {
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border: 2px dashed var(--health);
+  border-radius: 16px;
+  padding: 30px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.meal-upload-card:hover { background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); }
+.meal-upload-card .icon { font-size: 44px; margin-bottom: 8px; }
+.meal-upload-card .label { font-size: 15px; font-weight: 700; color: var(--health-dark); margin-bottom: 4px; }
+.meal-upload-card .sub { font-size: 12px; color: var(--text-secondary); }
+
+.meals-list { display: flex; flex-direction: column; gap: 10px; }
+.meal-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; transition: all 0.15s; cursor: pointer;
+}
+.meal-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.meal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+.meal-head .meal-time { font-size: 13px; font-weight: 600; }
+.meal-head .meal-cal { font-size: 13px; color: var(--health-dark); font-weight: 700; }
+.meal-foods { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+.meal-nutrition { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--text-tertiary); }
+.meal-nutrition span strong { color: var(--text-secondary); margin-right: 2px; }
+.meal-thumb {
+  width: 48px; height: 48px; border-radius: 8px;
+  object-fit: cover; flex-shrink: 0;
+}
+
+/* === 체중 차트 === */
+.chart-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; margin-bottom: 14px;
+}
+.chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary); }
+.chart-wrap { position: relative; height: 220px; }
+
+.weight-input-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.weight-row { display: flex; gap: 8px; align-items: end; }
+.weight-row .field { flex: 1; }
+
+/* === 운동 === */
+.exercise-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.exercise-quick-btn {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 8px; cursor: pointer; font-family: inherit;
+  text-align: center; transition: all 0.15s;
+}
+.exercise-quick-btn:hover { background: #ECFDF5; border-color: var(--health); }
+.exercise-quick-btn .icon { font-size: 22px; margin-bottom: 3px; }
+.exercise-quick-btn .name { font-size: 11.5px; font-weight: 500; color: var(--text); }
+.exercise-quick-btn .cal { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+/* === 카드 / 폼 === */
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--health); }
+.field textarea { resize: vertical; min-height: 60px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.empty {
+  text-align: center; padding: 40px 20px; color: var(--text-tertiary);
+}
+.empty .big { font-size: 40px; margin-bottom: 8px; }
+.empty .label { font-size: 13px; margin-bottom: 4px; font-weight: 500; }
+.empty .sub { font-size: 11.5px; }
+
+/* === 모달 === */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px; overflow-y: auto;
+  backdrop-filter: blur(2px);
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 14px; padding: 24px;
+  max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.actions .actions-left { margin-right: auto; }
+
+/* 음식 사진 분석 모달 */
+.food-photo-preview {
+  width: 100%; max-height: 240px; object-fit: cover;
+  border-radius: 10px; margin-bottom: 14px;
+}
+.analyzing {
+  text-align: center; padding: 30px 20px;
+}
+.analyzing .icon { font-size: 36px; margin-bottom: 8px; }
+.analyzing .label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.analyzing .sub { font-size: 12px; color: var(--text-tertiary); }
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2.5px solid rgba(16,185,129,0.2);
+  border-top-color: var(--health);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.food-item {
+  background: var(--bg); border-radius: 8px; padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.food-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.food-item-name { font-size: 13px; font-weight: 600; }
+.food-item-cal { font-size: 13px; color: var(--health-dark); font-weight: 700; }
+.food-item-detail { font-size: 11px; color: var(--text-tertiary); }
+.food-total {
+  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+  padding: 12px 14px; border-radius: 10px;
+  margin-top: 8px;
+}
+.food-total .total-cal { font-size: 18px; font-weight: 700; color: var(--health-dark); }
+.food-total .total-nutri { font-size: 11.5px; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+.food-total .total-nutri span strong { color: var(--text); margin-right: 2px; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; padding: 10px 18px;
+  border-radius: 8px; font-size: 12.5px; z-index: 200;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .app { padding: 16px; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a href="./index.html" class="back-link">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      라이프 OS
+    </a>
+    <div class="title-block">
+      <h1>🥗 건강 / 식단</h1>
+      <div class="subtitle">HEALTH · 식단 · 체중 · 운동 통합 관리</div>
+    </div>
+  </header>
+
+  <!-- 오늘 요약 배너 -->
+  <div class="banner">
+    <div class="banner-grid">
+      <div class="banner-stat">
+        <div class="label">오늘 칼로리</div>
+        <div class="value" id="bannerCal">0 kcal</div>
+        <div class="sub" id="bannerCalGoal">목표 미설정</div>
+        <div class="banner-progress"><div class="banner-progress-bar" id="bannerCalBar" style="width:0%;"></div></div>
+      </div>
+      <div class="banner-stat">
+        <div class="label">단백질</div>
+        <div class="value" id="bannerProtein">0g</div>
+        <div class="sub">탄수 <span id="bannerCarbs">0</span>g · 지방 <span id="bannerFat">0</span>g</div>
+      </div>
+      <div class="banner-stat">
+        <div class="label">현재 체중</div>
+        <div class="value" id="bannerWeight">-</div>
+        <div class="sub" id="bannerWeightDelta">기록 없음</div>
+      </div>
+      <div class="banner-stat">
+        <div class="label">오늘 운동</div>
+        <div class="value" id="bannerExercise">0분</div>
+        <div class="sub" id="bannerExerciseCal">소비 0kcal</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 탭 -->
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="meals">🍽️ 식단</button>
+    <button class="section-tab" data-section="weight">⚖️ 체중</button>
+    <button class="section-tab" data-section="exercise">🏃 운동</button>
+    <button class="section-tab" data-section="goals">🎯 목표</button>
+  </div>
+
+  <!-- 식단 탭 -->
+  <div class="section-pane active" id="section-meals">
+    <div class="date-nav">
+      <button class="nav-btn" id="mealPrevDay">‹</button>
+      <div class="current-date" id="mealCurrentDate">오늘</div>
+      <button class="nav-btn" id="mealNextDay">›</button>
+      <button class="btn small today-btn" id="mealToday">오늘</button>
+    </div>
+
+    <!-- 음식 사진 업로드 카드 -->
+    <div class="meal-upload-card" id="mealUploadCard">
+      <div class="icon">📸</div>
+      <div class="label">음식 사진 찍기</div>
+      <div class="sub">사진 한 장으로 칼로리/영양 자동 분석 (Gemini AI)</div>
+    </div>
+    <input type="file" id="mealPhotoInput" accept="image/*" capture="environment" style="display:none;">
+
+    <!-- 수동 입력 -->
+    <div style="text-align:center;margin-bottom:14px;">
+      <button class="btn small" id="btnManualMeal">✍️ 수동으로 입력</button>
+    </div>
+
+    <!-- 오늘 식사 목록 -->
+    <div class="meals-list" id="mealsList"></div>
+  </div>
+
+  <!-- 체중 탭 -->
+  <div class="section-pane" id="section-weight">
+    <!-- 빠른 입력 -->
+    <div class="weight-input-card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;">⚖️ 오늘 체중 입력</div>
+      <div class="weight-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>체중 (kg)</label>
+          <input type="number" id="weightInput" step="0.1" placeholder="65.5" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>날짜</label>
+          <input type="date" id="weightDate" />
+        </div>
+        <button class="btn primary" id="btnSaveWeight" style="margin-bottom:0;">저장</button>
+      </div>
+    </div>
+
+    <!-- 차트 -->
+    <div class="chart-card">
+      <h3>📊 체중 추이</h3>
+      <div class="chart-wrap">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 기록 리스트 -->
+    <div class="section-head">
+      <h2>📝 기록 내역</h2>
+    </div>
+    <div id="weightList"></div>
+  </div>
+
+  <!-- 운동 탭 -->
+  <div class="section-pane" id="section-exercise">
+    <div class="date-nav">
+      <button class="nav-btn" id="exPrevDay">‹</button>
+      <div class="current-date" id="exCurrentDate">오늘</div>
+      <button class="nav-btn" id="exNextDay">›</button>
+      <button class="btn small today-btn" id="exToday">오늘</button>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2>🏃 빠른 입력</h2>
+        <div class="section-sub">자주 하는 운동을 클릭하면 바로 추가</div>
+      </div>
+    </div>
+    <div class="exercise-quick" id="exerciseQuick"></div>
+
+    <div style="text-align:center;margin-bottom:14px;">
+      <button class="btn small" id="btnCustomExercise">✍️ 직접 입력</button>
+    </div>
+
+    <!-- 오늘 운동 -->
+    <div class="section-head">
+      <h2>📋 오늘 한 운동</h2>
+    </div>
+    <div id="exerciseList"></div>
+
+    <!-- 주간 그래프 -->
+    <div class="chart-card" style="margin-top:14px;">
+      <h3>📊 주간 운동량</h3>
+      <div class="chart-wrap">
+        <canvas id="exerciseChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 목표 탭 -->
+  <div class="section-pane" id="section-goals">
+    <div class="weight-input-card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🎯 일일 칼로리 목표</h3>
+      <div class="field">
+        <label>일일 권장 칼로리 (kcal)</label>
+        <input type="number" id="goalCalories" placeholder="예: 1800" />
+      </div>
+      <div class="field">
+        <label>📌 권장 가이드</label>
+        <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.7;background:var(--bg);padding:10px 12px;border-radius:8px;">
+          • 일반 성인 여성: 1,800~2,100 kcal<br>
+          • 일반 성인 남성: 2,200~2,500 kcal<br>
+          • 임신 1삼분기: +0 kcal<br>
+          • 임신 2삼분기: +340 kcal<br>
+          • 임신 3삼분기: +450 kcal<br>
+          • 모유 수유 중: +500 kcal
+        </div>
+      </div>
+    </div>
+
+    <div class="weight-input-card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">⚖️ 목표 체중</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>목표 체중 (kg)</label>
+          <input type="number" id="goalWeight" step="0.1" placeholder="55.0" />
+        </div>
+        <div class="field">
+          <label>목표 날짜</label>
+          <input type="date" id="goalWeightDate" />
+        </div>
+      </div>
+    </div>
+
+    <div class="weight-input-card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🏃 주간 운동 목표</h3>
+      <div class="field">
+        <label>주당 운동 시간 (분)</label>
+        <input type="number" id="goalExerciseMin" placeholder="예: 150 (WHO 권장)" />
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.5;">
+        WHO 권장: 주 150분 이상 중강도 유산소 운동 (산책 30분 × 5일)
+      </div>
+    </div>
+
+    <div style="text-align:right;margin-top:16px;">
+      <button class="btn primary" id="btnSaveGoals">💾 목표 저장</button>
+    </div>
+
+    <!-- 데이터 백업 -->
+    <div class="weight-input-card" style="background:#FEF3C7;border-color:#FCD34D;margin-top:20px;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">📤 데이터 백업 / 복원</h3>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">건강 데이터를 JSON 파일로 백업/복원</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="btnExportData">💾 JSON 내보내기</button>
+        <button class="btn" id="btnImportData">📂 JSON 불러오기</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 음식 사진 분석 모달 -->
+<div class="modal-bg" id="modalFoodAnalysis">
+  <div class="modal">
+    <h3 id="foodModalTitle">📸 음식 분석</h3>
+
+    <img id="foodPhotoPreview" class="food-photo-preview" style="display:none;" />
+
+    <div id="analyzingArea" class="analyzing" style="display:none;">
+      <div><span class="spinner"></span></div>
+      <div class="label" style="margin-top:10px;">Gemini가 분석 중...</div>
+      <div class="sub">사진 속 음식을 인식하고 칼로리를 추정하고 있어요</div>
+    </div>
+
+    <div id="foodResultArea" style="display:none;">
+      <div class="field">
+        <label>📋 분석 결과</label>
+        <div id="foodResultList"></div>
+      </div>
+
+      <div class="food-total">
+        <div class="total-cal">총 <span id="foodTotalCal">0</span> kcal</div>
+        <div class="total-nutri">
+          <span><strong>단백질</strong><span id="foodTotalProtein">0</span>g</span>
+          <span><strong>탄수</strong><span id="foodTotalCarbs">0</span>g</span>
+          <span><strong>지방</strong><span id="foodTotalFat">0</span>g</span>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-top:14px;">
+        <div class="field">
+          <label>식사 종류</label>
+          <select id="foodMealType">
+            <option value="breakfast">🍳 아침</option>
+            <option value="lunch">🍱 점심</option>
+            <option value="dinner">🍽️ 저녁</option>
+            <option value="snack">🍪 간식</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>시간</label>
+          <input type="time" id="foodTime" />
+        </div>
+      </div>
+      <div class="field">
+        <label>메모 (선택)</label>
+        <textarea id="foodNotes" placeholder="예: 친구랑 같이 먹음, 양 많았음"></textarea>
+      </div>
+    </div>
+
+    <div id="foodErrorArea" style="display:none;background:#FEF2F2;border:1px solid #FECACA;padding:12px;border-radius:8px;color:#B91C1C;font-size:12.5px;line-height:1.6;"></div>
+
+    <div class="actions">
+      <button class="btn danger actions-left" id="btnDeleteMeal" style="display:none;">삭제</button>
+      <button class="btn" id="btnFoodCancel">취소</button>
+      <button class="btn primary" id="btnFoodSave" disabled>저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수동 식사 입력 모달 -->
+<div class="modal-bg" id="modalManualMeal">
+  <div class="modal">
+    <h3>✍️ 수동 식사 입력</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>식사 종류</label>
+        <select id="manualMealType">
+          <option value="breakfast">🍳 아침</option>
+          <option value="lunch">🍱 점심</option>
+          <option value="dinner">🍽️ 저녁</option>
+          <option value="snack">🍪 간식</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>시간</label>
+        <input type="time" id="manualMealTime" />
+      </div>
+    </div>
+    <div class="field">
+      <label>음식 이름</label>
+      <input id="manualMealName" placeholder="예: 김치찌개, 공깃밥, 김치" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>칼로리 (kcal)</label>
+        <input type="number" id="manualMealCal" placeholder="500" />
+      </div>
+      <div class="field">
+        <label>단백질 (g)</label>
+        <input type="number" id="manualMealProtein" placeholder="20" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>탄수화물 (g)</label>
+        <input type="number" id="manualMealCarbs" placeholder="60" />
+      </div>
+      <div class="field">
+        <label>지방 (g)</label>
+        <input type="number" id="manualMealFat" placeholder="15" />
+      </div>
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <textarea id="manualMealNotes"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal('modalManualMeal')">취소</button>
+      <button class="btn primary" id="btnManualMealSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 운동 직접 입력 모달 -->
+<div class="modal-bg" id="modalCustomExercise">
+  <div class="modal">
+    <h3 id="exerciseModalTitle">🏃 운동 추가</h3>
+    <div class="field">
+      <label>운동 종류</label>
+      <input id="exerciseName" placeholder="예: 산책, 요가, 수영, 자전거" />
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>시간 (분)</label>
+        <input type="number" id="exerciseMin" placeholder="30" />
+      </div>
+      <div class="field">
+        <label>강도</label>
+        <select id="exerciseIntensity">
+          <option value="light">약 (가벼움)</option>
+          <option value="moderate" selected>중 (보통)</option>
+          <option value="vigorous">강 (격렬함)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>날짜</label>
+      <input type="date" id="exerciseDate" />
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <textarea id="exerciseNotes"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn danger actions-left" id="btnDeleteExercise" style="display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalCustomExercise')">취소</button>
+      <button class="btn primary" id="btnExerciseSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 확인 모달 -->
+<div class="modal-bg" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="confirmTitle">확인</h3>
+    <p id="confirmMessage" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;"></p>
+    <div class="actions">
+      <button class="btn" id="btnConfirmCancel">취소</button>
+      <button class="btn danger" id="btnConfirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'lifeos-health-v1';
+const API_KEYS_STORAGE = 'lifeos-api-keys';
+
+// ===== 운동 칼로리 추정 (체중 60kg 기준 분당 kcal) =====
+const EXERCISE_LIBRARY = {
+  '산책': { icon: '🚶', perMin: 3.5 },
+  '빠른걷기': { icon: '🏃', perMin: 5 },
+  '조깅': { icon: '🏃‍♂️', perMin: 7 },
+  '러닝': { icon: '🏃‍♀️', perMin: 10 },
+  '자전거': { icon: '🚴', perMin: 6 },
+  '수영': { icon: '🏊', perMin: 7 },
+  '요가': { icon: '🧘', perMin: 3 },
+  '필라테스': { icon: '🤸', perMin: 4 },
+  '헬스': { icon: '💪', perMin: 6 },
+  '홈트': { icon: '🏋️', perMin: 5 },
+  '계단오르기': { icon: '🪜', perMin: 8 },
+  '청소': { icon: '🧹', perMin: 3 },
+};
+
+let state = {
+  meals: [],         // {id, date(YYYY-MM-DD), time, mealType, foods:[{name,calories,protein,carbs,fat}], totalCal, totalProtein, totalCarbs, totalFat, notes, photo (base64 thumbnail)}
+  weights: [],       // {id, date, weight, notes}
+  exercises: [],     // {id, date, name, minutes, intensity, calories, notes}
+  goals: {
+    dailyCalories: null,
+    weightTarget: null,
+    weightTargetDate: null,
+    weeklyExerciseMin: null,
+  },
+  currentDate: new Date().toISOString().slice(0, 10),
+  currentExDate: new Date().toISOString().slice(0, 10),
+  editingMealId: null,
+  editingExerciseId: null,
+  weightChart: null,
+  exerciseChart: null,
+};
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const nowTimeStr = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+let _confirmCallback = null;
+function confirmModal(title, message, onConfirm, okLabel = '확인') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  document.getElementById('btnConfirmOk').textContent = okLabel;
+  _confirmCallback = onConfirm;
+  showModal('modalConfirm');
+}
+document.getElementById('btnConfirmOk').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  if (_confirmCallback) _confirmCallback();
+  _confirmCallback = null;
+});
+document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  _confirmCallback = null;
+});
+
+// ===== 저장/로드 =====
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    meals: state.meals,
+    weights: state.weights,
+    exercises: state.exercises,
+    goals: state.goals,
+  }));
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (p.meals) state.meals = p.meals;
+    if (p.weights) state.weights = p.weights;
+    if (p.exercises) state.exercises = p.exercises;
+    if (p.goals) state.goals = { ...state.goals, ...p.goals };
+  } catch(e){ console.warn(e); }
+}
+function loadApiKeys() {
+  try {
+    const raw = localStorage.getItem(API_KEYS_STORAGE);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+// ===== 마크다운/JSON 추출 =====
+function extractJson(text) {
+  // ```json ... ``` 블록 또는 첫 { ... } 추출
+  const codeMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeMatch) return codeMatch[1].trim();
+  const braceMatch = text.match(/\{[\s\S]*\}/);
+  if (braceMatch) return braceMatch[0];
+  return text;
+}
+
+// ===== 이미지 리사이즈 (base64 → 작은 base64) =====
+function resizeImage(file, maxSize = 1024) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 썸네일 (작은 사이즈로)
+function createThumbnail(base64, maxSize = 200) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = reject;
+    img.src = base64;
+  });
+}
+
+// ===== Gemini Vision API 호출 =====
+async function analyzeFoodPhoto(base64) {
+  const apiKeys = loadApiKeys();
+  if (!apiKeys.google) {
+    throw new Error('Google API 키가 설정되지 않았습니다. 메인 페이지 ⚙️에서 Gemini API 키를 입력해주세요.');
+  }
+
+  const model = apiKeys.googleModel || 'gemini-2.5-flash';
+  const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+
+  const prompt = `이 음식 사진을 분석해서 다음 JSON 형식으로만 답해주세요. 다른 설명은 절대 하지 마세요. 마크다운 코드블록도 사용하지 마세요. 순수 JSON만 출력해주세요.
+
+{
+  "foods": [
+    {
+      "name": "음식 이름 (한국어)",
+      "amount": "추정 양 (예: 1공기, 1인분, 200g)",
+      "calories": 칼로리(숫자),
+      "protein": 단백질g(숫자),
+      "carbs": 탄수화물g(숫자),
+      "fat": 지방g(숫자)
+    }
+  ],
+  "totalCalories": 총칼로리(숫자),
+  "totalProtein": 총단백질(숫자),
+  "totalCarbs": 총탄수화물(숫자),
+  "totalFat": 총지방(숫자),
+  "confidence": "high|medium|low",
+  "notes": "추가 정보 (예: 추정 근거, 양에 대한 가정)"
+}
+
+주의사항:
+- 한국 음식이면 한국 영양소 데이터 기준
+- 양이 불확실하면 일반적인 1인분 가정
+- 사진에 음식이 없으면 foods를 빈 배열로
+- 모든 숫자는 정수 또는 한 자리 소수점`;
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKeys.google}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }
+        ]
+      }]
+    })
+  });
+
+  if (!res.ok) {
+    let errMsg = `${res.status}`;
+    try {
+      const err = await res.json();
+      errMsg += ` ${err.error?.message || ''}`;
+    } catch(e) {}
+    throw new Error(`Gemini API 오류: ${errMsg}`);
+  }
+
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) throw new Error('Gemini 응답이 비어있어요');
+
+  // JSON 파싱
+  try {
+    const jsonText = extractJson(text);
+    const parsed = JSON.parse(jsonText);
+    return parsed;
+  } catch(e) {
+    throw new Error('Gemini 응답을 분석할 수 없어요. 다시 시도해주세요');
+  }
+}
+
+// ===== 식단: 음식 사진 업로드 =====
+document.getElementById('mealUploadCard').addEventListener('click', () => {
+  document.getElementById('mealPhotoInput').click();
+});
+
+document.getElementById('mealPhotoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // 같은 파일 다시 선택 가능
+
+  // 사이즈 체크 (5MB 제한)
+  if (file.size > 10 * 1024 * 1024) {
+    toast('사진 크기가 너무 커요 (10MB 이하)');
+    return;
+  }
+
+  state.editingMealId = null;
+  document.getElementById('foodModalTitle').textContent = '📸 음식 분석';
+  document.getElementById('btnDeleteMeal').style.display = 'none';
+  showModal('modalFoodAnalysis');
+
+  // 분석 영역 표시
+  document.getElementById('foodResultArea').style.display = 'none';
+  document.getElementById('foodErrorArea').style.display = 'none';
+  document.getElementById('analyzingArea').style.display = '';
+  document.getElementById('btnFoodSave').disabled = true;
+
+  try {
+    // 이미지 리사이즈
+    const base64 = await resizeImage(file);
+
+    // 미리보기
+    const preview = document.getElementById('foodPhotoPreview');
+    preview.src = base64;
+    preview.style.display = '';
+
+    // Gemini 분석
+    const result = await analyzeFoodPhoto(base64);
+
+    // 결과 표시
+    document.getElementById('analyzingArea').style.display = 'none';
+    showFoodResult(result, base64);
+  } catch(err) {
+    document.getElementById('analyzingArea').style.display = 'none';
+    document.getElementById('foodErrorArea').textContent = '❌ ' + err.message;
+    document.getElementById('foodErrorArea').style.display = '';
+  }
+});
+
+let pendingMeal = null;
+
+function showFoodResult(result, base64) {
+  pendingMeal = result;
+  pendingMeal._photo = base64;
+
+  const listEl = document.getElementById('foodResultList');
+  if (!result.foods || result.foods.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div>🤔</div><div>음식을 인식하지 못했어요. 다시 시도해주세요</div></div>';
+    document.getElementById('foodResultArea').style.display = '';
+    return;
+  }
+
+  listEl.innerHTML = result.foods.map(f => `
+    <div class="food-item">
+      <div class="food-item-head">
+        <span class="food-item-name">${escapeHtml(f.name)}</span>
+        <span class="food-item-cal">${f.calories} kcal</span>
+      </div>
+      <div class="food-item-detail">
+        ${escapeHtml(f.amount || '')}
+        · 단백질 ${f.protein || 0}g
+        · 탄수 ${f.carbs || 0}g
+        · 지방 ${f.fat || 0}g
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('foodTotalCal').textContent = result.totalCalories || 0;
+  document.getElementById('foodTotalProtein').textContent = result.totalProtein || 0;
+  document.getElementById('foodTotalCarbs').textContent = result.totalCarbs || 0;
+  document.getElementById('foodTotalFat').textContent = result.totalFat || 0;
+
+  // 식사 종류 자동 추천
+  const hour = new Date().getHours();
+  let mealType = 'snack';
+  if (hour >= 6 && hour < 11) mealType = 'breakfast';
+  else if (hour >= 11 && hour < 15) mealType = 'lunch';
+  else if (hour >= 17 && hour < 22) mealType = 'dinner';
+  document.getElementById('foodMealType').value = mealType;
+  document.getElementById('foodTime').value = nowTimeStr();
+  document.getElementById('foodNotes').value = result.notes || '';
+
+  document.getElementById('foodResultArea').style.display = '';
+  document.getElementById('btnFoodSave').disabled = false;
+}
+
+document.getElementById('btnFoodSave').addEventListener('click', async () => {
+  if (!pendingMeal) return;
+
+  // 썸네일 생성
+  let thumb = null;
+  if (pendingMeal._photo) {
+    try { thumb = await createThumbnail(pendingMeal._photo); } catch(e){}
+  }
+
+  const meal = {
+    id: state.editingMealId || uid(),
+    date: state.currentDate,
+    time: document.getElementById('foodTime').value || nowTimeStr(),
+    mealType: document.getElementById('foodMealType').value,
+    foods: pendingMeal.foods || [],
+    totalCal: pendingMeal.totalCalories || 0,
+    totalProtein: pendingMeal.totalProtein || 0,
+    totalCarbs: pendingMeal.totalCarbs || 0,
+    totalFat: pendingMeal.totalFat || 0,
+    notes: document.getElementById('foodNotes').value.trim(),
+    photo: thumb,
+  };
+
+  if (state.editingMealId) {
+    const i = state.meals.findIndex(m => m.id === state.editingMealId);
+    if (i !== -1) state.meals[i] = meal;
+  } else {
+    state.meals.push(meal);
+  }
+
+  save();
+  closeModal('modalFoodAnalysis');
+  toast('저장되었습니다');
+  pendingMeal = null;
+  state.editingMealId = null;
+  renderAll();
+});
+
+document.getElementById('btnFoodCancel').addEventListener('click', () => {
+  closeModal('modalFoodAnalysis');
+  pendingMeal = null;
+  state.editingMealId = null;
+});
+
+document.getElementById('btnDeleteMeal').addEventListener('click', () => {
+  if (!state.editingMealId) return;
+  const meal = state.meals.find(m => m.id === state.editingMealId);
+  closeModal('modalFoodAnalysis');
+  confirmModal('식사 삭제', '이 식사 기록을 삭제하시겠어요?', () => {
+    state.meals = state.meals.filter(m => m.id !== state.editingMealId);
+    state.editingMealId = null;
+    save();
+    renderAll();
+    toast('삭제되었습니다');
+  }, '삭제');
+});
+
+// ===== 수동 식사 입력 =====
+document.getElementById('btnManualMeal').addEventListener('click', () => {
+  document.getElementById('manualMealType').value = 'lunch';
+  document.getElementById('manualMealTime').value = nowTimeStr();
+  document.getElementById('manualMealName').value = '';
+  document.getElementById('manualMealCal').value = '';
+  document.getElementById('manualMealProtein').value = '';
+  document.getElementById('manualMealCarbs').value = '';
+  document.getElementById('manualMealFat').value = '';
+  document.getElementById('manualMealNotes').value = '';
+  showModal('modalManualMeal');
+});
+
+document.getElementById('btnManualMealSave').addEventListener('click', () => {
+  const name = document.getElementById('manualMealName').value.trim();
+  const cal = parseInt(document.getElementById('manualMealCal').value) || 0;
+  if (!name) return toast('음식 이름을 입력해주세요');
+
+  const meal = {
+    id: uid(),
+    date: state.currentDate,
+    time: document.getElementById('manualMealTime').value || nowTimeStr(),
+    mealType: document.getElementById('manualMealType').value,
+    foods: [{
+      name,
+      amount: '',
+      calories: cal,
+      protein: parseFloat(document.getElementById('manualMealProtein').value) || 0,
+      carbs: parseFloat(document.getElementById('manualMealCarbs').value) || 0,
+      fat: parseFloat(document.getElementById('manualMealFat').value) || 0,
+    }],
+    totalCal: cal,
+    totalProtein: parseFloat(document.getElementById('manualMealProtein').value) || 0,
+    totalCarbs: parseFloat(document.getElementById('manualMealCarbs').value) || 0,
+    totalFat: parseFloat(document.getElementById('manualMealFat').value) || 0,
+    notes: document.getElementById('manualMealNotes').value.trim(),
+    photo: null,
+    manual: true,
+  };
+
+  state.meals.push(meal);
+  save();
+  closeModal('modalManualMeal');
+  toast('저장되었습니다');
+  renderAll();
+});
+
+// ===== 식단 렌더 =====
+function renderMeals() {
+  const wrap = document.getElementById('mealsList');
+  const dateMeals = state.meals
+    .filter(m => m.date === state.currentDate)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  if (dateMeals.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="big">🍽️</div><div class="label">아직 기록된 식사가 없어요</div><div class="sub">위에서 사진을 찍거나 수동으로 입력해보세요</div></div>';
+    return;
+  }
+
+  const MEAL_LABELS = { breakfast: '🍳 아침', lunch: '🍱 점심', dinner: '🍽️ 저녁', snack: '🍪 간식' };
+
+  wrap.innerHTML = dateMeals.map(m => {
+    const foodsText = (m.foods || []).map(f => `${f.name}${f.amount ? ` (${f.amount})` : ''}`).join(', ');
+    return `
+      <div class="meal-card" data-id="${m.id}">
+        <div class="meal-head">
+          <div style="display:flex;gap:10px;align-items:center;flex:1;min-width:0;">
+            ${m.photo ? `<img src="${m.photo}" class="meal-thumb" />` : ''}
+            <div style="min-width:0;flex:1;">
+              <div class="meal-time">${MEAL_LABELS[m.mealType] || ''} · ${escapeHtml(m.time || '')}</div>
+              <div class="meal-foods">${escapeHtml(foodsText)}</div>
+            </div>
+          </div>
+          <div class="meal-cal">${m.totalCal} kcal</div>
+        </div>
+        <div class="meal-nutrition">
+          <span><strong>P</strong>${m.totalProtein || 0}g</span>
+          <span><strong>C</strong>${m.totalCarbs || 0}g</span>
+          <span><strong>F</strong>${m.totalFat || 0}g</span>
+          ${m.notes ? `<span style="margin-left:auto;color:var(--text-tertiary);">📝 ${escapeHtml(m.notes.slice(0, 30))}${m.notes.length > 30 ? '...' : ''}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 카드 클릭 시 수정 (사진 있는 거만 분석 모달, 수동은 단순 메모)
+  wrap.querySelectorAll('.meal-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      const meal = state.meals.find(m => m.id === id);
+      if (!meal) return;
+      // 일단 삭제 옵션만 제공 (간단하게)
+      confirmModal('식사 기록', `"${(meal.foods[0]?.name || '식사')}"\n${meal.totalCal} kcal\n\n삭제하시겠어요?`, () => {
+        state.meals = state.meals.filter(m => m.id !== id);
+        save();
+        renderAll();
+        toast('삭제되었습니다');
+      }, '삭제');
+    });
+  });
+}
+
+// ===== 날짜 네비게이션 =====
+function fmtDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = todayStr();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  if (dateStr === today) return '오늘';
+  if (dateStr === yesterday) return '어제';
+  if (dateStr === tomorrow) return '내일';
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const w = ['일','월','화','수','목','금','토'][d.getDay()];
+  return `${m}월 ${day}일 (${w})`;
+}
+
+function changeDate(deltaDays) {
+  const d = new Date(state.currentDate + 'T00:00:00');
+  d.setDate(d.getDate() + deltaDays);
+  state.currentDate = d.toISOString().slice(0, 10);
+  renderAll();
+}
+function changeExDate(deltaDays) {
+  const d = new Date(state.currentExDate + 'T00:00:00');
+  d.setDate(d.getDate() + deltaDays);
+  state.currentExDate = d.toISOString().slice(0, 10);
+  renderExercises();
+}
+
+document.getElementById('mealPrevDay').addEventListener('click', () => changeDate(-1));
+document.getElementById('mealNextDay').addEventListener('click', () => changeDate(1));
+document.getElementById('mealToday').addEventListener('click', () => { state.currentDate = todayStr(); renderAll(); });
+document.getElementById('exPrevDay').addEventListener('click', () => changeExDate(-1));
+document.getElementById('exNextDay').addEventListener('click', () => changeExDate(1));
+document.getElementById('exToday').addEventListener('click', () => { state.currentExDate = todayStr(); renderExercises(); });
+
+// ===== 체중 =====
+document.getElementById('btnSaveWeight').addEventListener('click', () => {
+  const weight = parseFloat(document.getElementById('weightInput').value);
+  const date = document.getElementById('weightDate').value || todayStr();
+  if (!weight || weight < 20 || weight > 300) {
+    toast('올바른 체중을 입력해주세요 (20~300kg)');
+    return;
+  }
+  // 같은 날짜 있으면 덮어쓰기
+  const existing = state.weights.findIndex(w => w.date === date);
+  const data = { id: existing !== -1 ? state.weights[existing].id : uid(), date, weight };
+  if (existing !== -1) state.weights[existing] = data;
+  else state.weights.push(data);
+  save();
+  document.getElementById('weightInput').value = '';
+  toast('저장되었습니다');
+  renderWeights();
+  renderBanner();
+});
+
+function renderWeights() {
+  const wrap = document.getElementById('weightList');
+  const sorted = state.weights.slice().sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="big">⚖️</div><div class="label">아직 체중 기록이 없어요</div><div class="sub">위에서 입력해보세요</div></div>';
+    drawWeightChart([]);
+    return;
+  }
+  wrap.innerHTML = sorted.slice(0, 30).map((w, i) => {
+    const prev = sorted[i + 1];
+    const delta = prev ? (w.weight - prev.weight).toFixed(1) : null;
+    const deltaText = delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) : '-';
+    const deltaColor = delta ? (parseFloat(delta) > 0 ? '#EF4444' : (parseFloat(delta) < 0 ? '#10B981' : 'var(--text-tertiary)')) : 'var(--text-tertiary)';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;">
+        <div>
+          <div style="font-size:12.5px;font-weight:600;">${fmtDate(w.date)}</div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">${w.date}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:15px;font-weight:700;">${w.weight} <span style="font-size:11px;color:var(--text-tertiary);">kg</span></div>
+          <div style="font-size:11px;color:${deltaColor};margin-top:2px;">${deltaText}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  drawWeightChart(sorted.slice(0, 30).reverse());
+}
+
+function drawWeightChart(weights) {
+  const ctx = document.getElementById('weightChart');
+  if (!ctx) return;
+  if (state.weightChart) state.weightChart.destroy();
+  if (weights.length === 0) return;
+
+  const labels = weights.map(w => {
+    const d = new Date(w.date + 'T00:00:00');
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  });
+  const data = weights.map(w => w.weight);
+
+  state.weightChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '체중 (kg)',
+        data,
+        borderColor: '#10B981',
+        backgroundColor: 'rgba(16,185,129,0.1)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#10B981',
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: false, ticks: { font: { size: 11 } } },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ===== 운동 =====
+function renderExerciseQuickButtons() {
+  const wrap = document.getElementById('exerciseQuick');
+  wrap.innerHTML = Object.entries(EXERCISE_LIBRARY).map(([name, info]) => {
+    const cal30 = Math.round(info.perMin * 30);
+    return `
+      <button class="exercise-quick-btn" data-name="${name}">
+        <div class="icon">${info.icon}</div>
+        <div class="name">${name}</div>
+        <div class="cal">30분 ≈ ${cal30}kcal</div>
+      </button>
+    `;
+  }).join('');
+  wrap.querySelectorAll('.exercise-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      // 빠른 입력: 30분, 중강도
+      const info = EXERCISE_LIBRARY[name];
+      const minutes = 30;
+      const calories = Math.round(info.perMin * minutes);
+      state.exercises.push({
+        id: uid(),
+        date: state.currentExDate,
+        name,
+        minutes,
+        intensity: 'moderate',
+        calories,
+      });
+      save();
+      toast(`${name} 30분 추가 (${calories}kcal)`);
+      renderExercises();
+      renderBanner();
+    });
+  });
+}
+
+document.getElementById('btnCustomExercise').addEventListener('click', () => {
+  state.editingExerciseId = null;
+  document.getElementById('exerciseModalTitle').textContent = '🏃 운동 추가';
+  document.getElementById('exerciseName').value = '';
+  document.getElementById('exerciseMin').value = '30';
+  document.getElementById('exerciseIntensity').value = 'moderate';
+  document.getElementById('exerciseDate').value = state.currentExDate;
+  document.getElementById('exerciseNotes').value = '';
+  document.getElementById('btnDeleteExercise').style.display = 'none';
+  showModal('modalCustomExercise');
+});
+
+document.getElementById('btnExerciseSave').addEventListener('click', () => {
+  const name = document.getElementById('exerciseName').value.trim();
+  const minutes = parseInt(document.getElementById('exerciseMin').value) || 0;
+  if (!name) return toast('운동 이름을 입력해주세요');
+  if (minutes <= 0) return toast('시간을 입력해주세요');
+
+  // 칼로리 추정 (라이브러리 + 강도)
+  const info = EXERCISE_LIBRARY[name] || { perMin: 4 }; // 기본값
+  const intensity = document.getElementById('exerciseIntensity').value;
+  const intensityMultiplier = { light: 0.7, moderate: 1, vigorous: 1.4 }[intensity] || 1;
+  const calories = Math.round(info.perMin * minutes * intensityMultiplier);
+
+  const data = {
+    id: state.editingExerciseId || uid(),
+    date: document.getElementById('exerciseDate').value || state.currentExDate,
+    name,
+    minutes,
+    intensity,
+    calories,
+    notes: document.getElementById('exerciseNotes').value.trim(),
+  };
+
+  if (state.editingExerciseId) {
+    const i = state.exercises.findIndex(e => e.id === state.editingExerciseId);
+    if (i !== -1) state.exercises[i] = data;
+  } else {
+    state.exercises.push(data);
+  }
+  save();
+  closeModal('modalCustomExercise');
+  toast('저장되었습니다');
+  renderExercises();
+  renderBanner();
+});
+
+document.getElementById('btnDeleteExercise').addEventListener('click', () => {
+  if (!state.editingExerciseId) return;
+  closeModal('modalCustomExercise');
+  confirmModal('운동 삭제', '이 운동 기록을 삭제하시겠어요?', () => {
+    state.exercises = state.exercises.filter(e => e.id !== state.editingExerciseId);
+    state.editingExerciseId = null;
+    save();
+    renderExercises();
+    renderBanner();
+    toast('삭제되었습니다');
+  }, '삭제');
+});
+
+function renderExercises() {
+  document.getElementById('exCurrentDate').textContent = fmtDate(state.currentExDate);
+
+  const wrap = document.getElementById('exerciseList');
+  const dateExs = state.exercises
+    .filter(e => e.date === state.currentExDate);
+
+  if (dateExs.length === 0) {
+    wrap.innerHTML = '<div class="empty"><div class="big">🏃</div><div class="label">아직 한 운동이 없어요</div><div class="sub">위에서 빠른 입력 또는 직접 입력해보세요</div></div>';
+  } else {
+    const INTENSITY = { light: '약', moderate: '중', vigorous: '강' };
+    wrap.innerHTML = dateExs.map(e => {
+      const icon = EXERCISE_LIBRARY[e.name]?.icon || '🏃';
+      return `
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" data-id="${e.id}" class="ex-item">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span style="font-size:22px;">${icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;">${escapeHtml(e.name)}</div>
+              <div style="font-size:11px;color:var(--text-tertiary);">${e.minutes}분 · 강도 ${INTENSITY[e.intensity] || ''}</div>
+            </div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--health-dark);">${e.calories} kcal</div>
+        </div>
+      `;
+    }).join('');
+    wrap.querySelectorAll('.ex-item').forEach(item => {
+      item.addEventListener('click', () => editExercise(item.dataset.id));
+    });
+  }
+
+  // 주간 차트
+  drawExerciseChart();
+}
+
+function editExercise(id) {
+  const e = state.exercises.find(x => x.id === id);
+  if (!e) return;
+  state.editingExerciseId = id;
+  document.getElementById('exerciseModalTitle').textContent = '🏃 운동 수정';
+  document.getElementById('exerciseName').value = e.name;
+  document.getElementById('exerciseMin').value = e.minutes;
+  document.getElementById('exerciseIntensity').value = e.intensity || 'moderate';
+  document.getElementById('exerciseDate').value = e.date;
+  document.getElementById('exerciseNotes').value = e.notes || '';
+  document.getElementById('btnDeleteExercise').style.display = '';
+  showModal('modalCustomExercise');
+}
+
+function drawExerciseChart() {
+  const ctx = document.getElementById('exerciseChart');
+  if (!ctx) return;
+  if (state.exerciseChart) state.exerciseChart.destroy();
+
+  // 최근 7일
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const minutes = state.exercises.filter(e => e.date === dateStr).reduce((s, e) => s + (e.minutes || 0), 0);
+    days.push({
+      date: dateStr,
+      label: ['일','월','화','수','목','금','토'][d.getDay()],
+      minutes,
+    });
+  }
+
+  state.exerciseChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days.map(d => d.label),
+      datasets: [{
+        label: '운동 시간 (분)',
+        data: days.map(d => d.minutes),
+        backgroundColor: '#10B981',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: { size: 11 } } },
+        x: { ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ===== 목표 =====
+function renderGoals() {
+  document.getElementById('goalCalories').value = state.goals.dailyCalories || '';
+  document.getElementById('goalWeight').value = state.goals.weightTarget || '';
+  document.getElementById('goalWeightDate').value = state.goals.weightTargetDate || '';
+  document.getElementById('goalExerciseMin').value = state.goals.weeklyExerciseMin || '';
+}
+
+document.getElementById('btnSaveGoals').addEventListener('click', () => {
+  state.goals = {
+    dailyCalories: parseInt(document.getElementById('goalCalories').value) || null,
+    weightTarget: parseFloat(document.getElementById('goalWeight').value) || null,
+    weightTargetDate: document.getElementById('goalWeightDate').value || null,
+    weeklyExerciseMin: parseInt(document.getElementById('goalExerciseMin').value) || null,
+  };
+  save();
+  toast('목표가 저장되었습니다');
+  renderBanner();
+});
+
+// ===== 배너 (오늘 요약) =====
+function renderBanner() {
+  const today = todayStr();
+
+  // 오늘 식단
+  const todayMeals = state.meals.filter(m => m.date === today);
+  const totalCal = todayMeals.reduce((s, m) => s + (m.totalCal || 0), 0);
+  const totalProtein = todayMeals.reduce((s, m) => s + (m.totalProtein || 0), 0);
+  const totalCarbs = todayMeals.reduce((s, m) => s + (m.totalCarbs || 0), 0);
+  const totalFat = todayMeals.reduce((s, m) => s + (m.totalFat || 0), 0);
+
+  document.getElementById('bannerCal').textContent = `${totalCal} kcal`;
+  document.getElementById('bannerProtein').textContent = `${Math.round(totalProtein)}g`;
+  document.getElementById('bannerCarbs').textContent = Math.round(totalCarbs);
+  document.getElementById('bannerFat').textContent = Math.round(totalFat);
+
+  if (state.goals.dailyCalories) {
+    const pct = Math.min(100, Math.round(totalCal / state.goals.dailyCalories * 100));
+    document.getElementById('bannerCalGoal').textContent = `${pct}% / 목표 ${state.goals.dailyCalories}kcal`;
+    document.getElementById('bannerCalBar').style.width = pct + '%';
+  } else {
+    document.getElementById('bannerCalGoal').textContent = '목표 미설정 (목표 탭에서 설정)';
+    document.getElementById('bannerCalBar').style.width = '0%';
+  }
+
+  // 체중
+  const sortedW = state.weights.slice().sort((a, b) => b.date.localeCompare(a.date));
+  if (sortedW.length > 0) {
+    document.getElementById('bannerWeight').textContent = `${sortedW[0].weight}kg`;
+    if (sortedW.length > 1) {
+      const delta = (sortedW[0].weight - sortedW[1].weight).toFixed(1);
+      const deltaText = parseFloat(delta) > 0 ? `+${delta}` : delta;
+      document.getElementById('bannerWeightDelta').textContent = `이전 대비 ${deltaText}kg`;
+    } else {
+      document.getElementById('bannerWeightDelta').textContent = '첫 기록';
+    }
+  } else {
+    document.getElementById('bannerWeight').textContent = '-';
+    document.getElementById('bannerWeightDelta').textContent = '기록 없음';
+  }
+
+  // 오늘 운동
+  const todayEx = state.exercises.filter(e => e.date === today);
+  const totalMin = todayEx.reduce((s, e) => s + (e.minutes || 0), 0);
+  const totalExCal = todayEx.reduce((s, e) => s + (e.calories || 0), 0);
+  document.getElementById('bannerExercise').textContent = `${totalMin}분`;
+  document.getElementById('bannerExerciseCal').textContent = `소비 ${totalExCal}kcal`;
+}
+
+// ===== 섹션 탭 =====
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const section = tab.dataset.section;
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.section-pane').forEach(p => p.classList.toggle('active', p.id === 'section-' + section));
+
+    // 차트 다시 그리기 (탭 전환 시 사이즈 이슈)
+    if (section === 'weight') setTimeout(renderWeights, 50);
+    if (section === 'exercise') setTimeout(renderExercises, 50);
+  });
+});
+
+// ===== 데이터 백업/복원 =====
+document.getElementById('btnExportData').addEventListener('click', () => {
+  const data = {
+    meals: state.meals,
+    weights: state.weights,
+    exercises: state.exercises,
+    goals: state.goals,
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lifeos-health-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('내보냈습니다');
+});
+
+document.getElementById('btnImportData').addEventListener('click', () => {
+  document.getElementById('fileImport').click();
+});
+
+document.getElementById('fileImport').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    confirmModal('데이터 가져오기', '현재 데이터가 모두 덮어써집니다. 계속하시겠어요?', () => {
+      if (data.meals) state.meals = data.meals;
+      if (data.weights) state.weights = data.weights;
+      if (data.exercises) state.exercises = data.exercises;
+      if (data.goals) state.goals = data.goals;
+      save();
+      renderAll();
+      toast('가져왔습니다');
+    }, '가져오기');
+  } catch(err) {
+    toast('올바른 JSON 파일이 아닙니다');
+  }
+  e.target.value = '';
+});
+
+// ===== 메인 렌더 =====
+function renderAll() {
+  document.getElementById('mealCurrentDate').textContent = fmtDate(state.currentDate);
+  document.getElementById('exCurrentDate').textContent = fmtDate(state.currentExDate);
+  renderBanner();
+  renderMeals();
+  renderWeights();
+  renderExercises();
+  renderGoals();
+}
+
+// ===== 초기화 =====
+load();
+document.getElementById('weightDate').value = todayStr();
+renderExerciseQuickButtons();
+renderAll();
+</script>
+</body>
+</html>

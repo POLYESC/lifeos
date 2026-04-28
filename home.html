@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가전 허브 · 라이프 OS</title>
+<style>
+:root {
+  --primary: #4F7CFF;
+  --home: #06B6D4;
+  --home-dark: #0E7490;
+  --text: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --border: #E2E8F0;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --danger: #EF4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+  background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; min-height: 100vh;
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; }
+.back-link:hover { color: var(--primary); }
+.title-block h1 { font-size: 22px; letter-spacing: -0.02em; margin-bottom: 2px; }
+.title-block .subtitle { font-size: 12px; color: var(--text-tertiary); letter-spacing: 0.05em; }
+
+.banner {
+  background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+  color: #fff; border-radius: 16px; padding: 22px;
+  margin-bottom: 20px;
+}
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+.banner-stat .label { font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 500; margin-bottom: 4px; }
+.banner-stat .value { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.banner-stat .sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+.section-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.section-tab { padding: 10px 16px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; white-space: nowrap; }
+.section-tab.active { color: var(--home); border-bottom-color: var(--home); }
+.section-pane { display: none; }
+.section-pane.active { display: block; }
+
+.section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+.section-head h2 { font-size: 15px; font-weight: 700; }
+.section-head .section-sub { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+
+.btn {
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  font-family: inherit; transition: all 0.15s;
+}
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--home); color: #fff; border-color: var(--home); }
+.btn.primary:hover { filter: brightness(0.95); }
+.btn.danger { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+.btn.small { padding: 5px 9px; font-size: 11px; }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-chip {
+  border: 1px solid var(--border); background: #fff; color: var(--text-secondary);
+  padding: 5px 11px; border-radius: 14px; font-size: 11.5px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.filter-chip:hover { background: var(--bg); }
+.filter-chip.active { background: var(--home); color: #fff; border-color: var(--home); }
+
+/* 가전 카드 */
+.devices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.device-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; transition: all 0.15s;
+}
+.device-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: var(--text-tertiary); }
+.device-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.device-emoji { font-size: 28px; flex-shrink: 0; }
+.device-info { flex: 1; min-width: 0; }
+.device-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-meta { font-size: 11px; color: var(--text-tertiary); }
+.device-platform-badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 600; margin-right: 4px; }
+.device-platform-badge.lg { background: #FCE7F3; color: #9F1239; }
+.device-platform-badge.samsung { background: #DBEAFE; color: #1E40AF; }
+.device-platform-badge.xiaomi { background: #FEF3C7; color: #92400E; }
+.device-platform-badge.other { background: #E5E7EB; color: #374151; }
+.device-room { font-size: 10px; color: var(--text-tertiary); }
+.device-actions { display: flex; gap: 6px; margin-top: 4px; }
+.device-actions .btn { flex: 1; justify-content: center; }
+
+/* 자동화 시나리오 */
+.scenarios-list { display: flex; flex-direction: column; gap: 10px; }
+.scenario-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; transition: all 0.15s;
+}
+.scenario-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.scenario-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+.scenario-title { font-size: 14px; font-weight: 700; }
+.scenario-desc { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+.scenario-steps { background: #FAFBFC; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.7; }
+.scenario-steps .step { display: flex; gap: 8px; }
+.scenario-steps .step-num { color: var(--home); font-weight: 700; flex-shrink: 0; }
+
+/* 가전 정보 */
+.info-list { display: flex; flex-direction: column; gap: 10px; }
+.info-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px;
+}
+.info-row { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; line-height: 1.7; }
+.info-row .label { color: var(--text-tertiary); width: 56px; flex-shrink: 0; font-size: 11px; }
+.info-row .value { color: var(--text); font-weight: 500; }
+.info-row .value a { color: var(--primary); text-decoration: none; }
+.info-row .value a:hover { text-decoration: underline; }
+
+/* 설정 섹션 */
+.settings-content { display: flex; flex-direction: column; gap: 14px; }
+.setting-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 18px;
+}
+.setting-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.setting-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px; }
+.setting-card .help { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; line-height: 1.5; }
+.setting-card .help a { color: var(--primary); text-decoration: none; }
+
+.empty {
+  text-align: center; padding: 40px 20px; color: var(--text-tertiary);
+}
+.empty .big { font-size: 40px; margin-bottom: 8px; }
+.empty .label { font-size: 13px; margin-bottom: 4px; font-weight: 500; }
+.empty .sub { font-size: 11.5px; }
+
+/* 모달 */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px; overflow-y: auto;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 14px; padding: 24px;
+  max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--home); }
+.field textarea { resize: vertical; min-height: 70px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; padding: 10px 18px;
+  border-radius: 8px; font-size: 12.5px; z-index: 200;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .app { padding: 16px; }
+  .devices-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a href="./index.html" class="back-link">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      라이프 OS
+    </a>
+    <div class="title-block">
+      <h1>🏠 가전 허브</h1>
+      <div class="subtitle">SMART HOME · 우리집 가전 통합 관리</div>
+    </div>
+  </header>
+
+  <!-- 청록 배너 -->
+  <div class="banner">
+    <div class="banner-grid">
+      <div class="banner-stat">
+        <div class="label">등록된 가전</div>
+        <div class="value" id="totalDeviceCount">0대</div>
+        <div class="sub" id="platformBreakdown">아직 등록된 가전이 없어요</div>
+      </div>
+      <div class="banner-stat">
+        <div class="label">자동화 시나리오</div>
+        <div class="value" id="totalScenarioCount">0개</div>
+        <div class="sub">외출/취침/기상 등</div>
+      </div>
+      <div class="banner-stat">
+        <div class="label">방 / 위치</div>
+        <div class="value" id="totalRoomCount">0개</div>
+        <div class="sub">거실, 안방, 주방 등</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 탭 -->
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="devices">📱 가전 목록</button>
+    <button class="section-tab" data-section="scenarios">⚡ 자동화</button>
+    <button class="section-tab" data-section="info">📋 모델/AS</button>
+    <button class="section-tab" data-section="settings">⚙️ 설정</button>
+  </div>
+
+  <!-- 가전 목록 -->
+  <div class="section-pane active" id="section-devices">
+    <div class="section-head">
+      <div>
+        <h2>등록된 가전</h2>
+        <div class="section-sub">카드 클릭 시 해당 앱 열기 · ⚙️에서 직접 제어 설정</div>
+      </div>
+      <button class="btn primary" id="btnAddDevice">+ 가전 추가</button>
+    </div>
+    <div class="filter-row" id="platformFilters">
+      <button class="filter-chip active" data-filter="all">전체</button>
+      <button class="filter-chip" data-filter="lg">🅻🅶 LG</button>
+      <button class="filter-chip" data-filter="samsung">삼성</button>
+      <button class="filter-chip" data-filter="xiaomi">샤오미</button>
+      <button class="filter-chip" data-filter="other">기타</button>
+    </div>
+    <div class="devices-grid" id="devicesGrid"></div>
+  </div>
+
+  <!-- 자동화 시나리오 -->
+  <div class="section-pane" id="section-scenarios">
+    <div class="section-head">
+      <div>
+        <h2>자동화 시나리오</h2>
+        <div class="section-sub">외출/취침/기상 등 상황별 가전 사용 메모</div>
+      </div>
+      <button class="btn primary" id="btnAddScenario">+ 시나리오 추가</button>
+    </div>
+    <div class="scenarios-list" id="scenariosList"></div>
+  </div>
+
+  <!-- 가전 모델/AS 정보 -->
+  <div class="section-pane" id="section-info">
+    <div class="section-head">
+      <div>
+        <h2>가전 모델 / AS 정보</h2>
+        <div class="section-sub">매뉴얼, AS 번호, 모델 번호 한눈에</div>
+      </div>
+    </div>
+    <div class="info-list" id="infoList"></div>
+  </div>
+
+  <!-- 설정 (직접 제어용 - 다음 단계에서 채워질 예정) -->
+  <div class="section-pane" id="section-settings">
+    <div class="section-head">
+      <div>
+        <h2>직접 제어 설정 (선택)</h2>
+        <div class="section-sub">API 키 입력 시 인앱에서 가전 직접 제어 가능 (다음 단계에서 활성화)</div>
+      </div>
+    </div>
+    <div class="settings-content">
+      <div class="setting-card">
+        <h3>🔵 SmartThings (삼성) - 준비 중</h3>
+        <p>삼성 SmartThings PAT 발급 후 가전 직접 제어 가능합니다. 다음 업데이트에서 활성화 예정.</p>
+        <div class="help">
+          예정 기능: 도어락 잠금/해제, 에어컨 켜기/끄기/온도, 조명 제어 등
+        </div>
+      </div>
+      <div class="setting-card">
+        <h3>🔴 LG ThinQ - 준비 중</h3>
+        <p>LG ThinQ PAT 발급 후 가전 직접 제어 시도. 다음 업데이트에서 활성화 예정.</p>
+        <div class="help">
+          예정 기능: 에어컨, TV, 세탁기, 냉장고 등 LG AI 가전 제어
+        </div>
+      </div>
+      <div class="setting-card">
+        <h3>🟡 샤오미 미홈 - 외부 앱만</h3>
+        <p>샤오미는 공식 API가 없어 외부 앱(미홈)으로만 진입 가능합니다.</p>
+        <div class="help">
+          가전 카드 클릭 시 미홈 앱이 자동으로 열립니다 (앱 설치 시)
+        </div>
+      </div>
+
+      <div class="setting-card" style="background:#FEF3C7;border-color:#FCD34D;">
+        <h3>📤 데이터 백업 / 복원</h3>
+        <p>가전 정보 + 자동화 시나리오를 JSON 파일로 백업/복원할 수 있어요.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" id="btnExportData">💾 JSON 내보내기</button>
+          <button class="btn" id="btnImportData">📂 JSON 불러오기</button>
+          <input type="file" id="fileImport" accept="application/json" style="display:none;">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 가전 추가/수정 모달 -->
+<div class="modal-bg" id="modalDevice">
+  <div class="modal">
+    <h3 id="deviceModalTitle">가전 추가</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>이름</label>
+        <input id="deviceName" placeholder="예: 거실 에어컨" />
+      </div>
+      <div class="field">
+        <label>이모지</label>
+        <input id="deviceEmoji" placeholder="🌡️" maxlength="3" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>카테고리</label>
+        <select id="deviceCategory">
+          <option value="aircon">🌡️ 에어컨</option>
+          <option value="tv">📺 TV</option>
+          <option value="light">💡 조명</option>
+          <option value="cleaner">🌬️ 공기청정기</option>
+          <option value="fridge">🧊 냉장고</option>
+          <option value="washer">🧺 세탁기</option>
+          <option value="dryer">👕 건조기</option>
+          <option value="robot">🤖 로봇청소기</option>
+          <option value="doorlock">🚪 도어락</option>
+          <option value="speaker">🔊 스피커</option>
+          <option value="boiler">🔥 보일러</option>
+          <option value="curtain">🪟 커튼/블라인드</option>
+          <option value="oven">🍞 오븐/전자레인지</option>
+          <option value="cam">📷 홈캠</option>
+          <option value="other">📦 기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>플랫폼</label>
+        <select id="devicePlatform">
+          <option value="lg">🅻🅶 LG ThinQ</option>
+          <option value="samsung">🔵 삼성 SmartThings</option>
+          <option value="xiaomi">🟡 샤오미 미홈</option>
+          <option value="apple">🍎 Apple HomeKit</option>
+          <option value="google">🌐 Google Home</option>
+          <option value="naver">🔆 네이버 클로바</option>
+          <option value="kakao">💬 카카오홈</option>
+          <option value="other">📦 기타 / 일반</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>방 / 위치 (선택)</label>
+      <input id="deviceRoom" placeholder="예: 거실, 안방, 주방, 베란다" />
+    </div>
+    <div class="field">
+      <label>모델명 (선택)</label>
+      <input id="deviceModel" placeholder="예: LG OLED55C3SNA" />
+    </div>
+    <div class="field">
+      <label>AS 전화번호 (선택)</label>
+      <input id="deviceAsNumber" placeholder="예: 1544-7777" />
+    </div>
+    <div class="field">
+      <label>매뉴얼/제품 페이지 URL (선택)</label>
+      <input id="deviceManualUrl" type="url" placeholder="https://..." />
+    </div>
+    <div class="field">
+      <label>메모 (선택)</label>
+      <textarea id="deviceMemo" placeholder="구매일, 보증기간, 특이사항 등"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteDevice" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalDevice')">취소</button>
+      <button class="btn primary" id="btnSaveDevice">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 시나리오 추가/수정 모달 -->
+<div class="modal-bg" id="modalScenario">
+  <div class="modal">
+    <h3 id="scenarioModalTitle">자동화 시나리오 추가</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>이름</label>
+        <input id="scenarioName" placeholder="예: 외출 모드" />
+      </div>
+      <div class="field">
+        <label>이모지</label>
+        <input id="scenarioEmoji" placeholder="🚪" maxlength="3" />
+      </div>
+    </div>
+    <div class="field">
+      <label>설명 (선택)</label>
+      <input id="scenarioDescription" placeholder="예: 외출 시 가전 정리 순서" />
+    </div>
+    <div class="field">
+      <label>단계 (한 줄에 하나씩)</label>
+      <textarea id="scenarioSteps" placeholder="거실 에어컨 OFF&#10;모든 조명 OFF&#10;도어락 잠금 확인&#10;공기청정기 자동 모드로 변경" style="min-height:120px;"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteScenario" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalScenario')">취소</button>
+      <button class="btn primary" id="btnSaveScenario">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 확인 모달 -->
+<div class="modal-bg" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="confirmTitle">확인</h3>
+    <p id="confirmMessage" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;"></p>
+    <div class="actions">
+      <button class="btn" id="btnConfirmCancel">취소</button>
+      <button class="btn danger" id="btnConfirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'lifeos-home-v1';
+
+let state = {
+  devices: [],       // {id, name, emoji, category, platform, room, model, asNumber, manualUrl, memo, smartThingsId, thinqId}
+  scenarios: [],     // {id, name, emoji, description, steps}
+  apiKeys: {},       // {smartThings, thinq, thinqClientId} - 다음 단계에서 사용
+  currentSection: 'devices',
+  filterPlatform: 'all',
+  editingDeviceId: null,
+  editingScenarioId: null,
+};
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+// 자체 confirm 모달
+let _confirmCallback = null;
+function confirmModal(title, message, onConfirm, okLabel = '확인', okClass = 'btn danger') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  const okBtn = document.getElementById('btnConfirmOk');
+  okBtn.textContent = okLabel;
+  okBtn.className = okClass;
+  _confirmCallback = onConfirm;
+  showModal('modalConfirm');
+}
+document.getElementById('btnConfirmOk').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  if (_confirmCallback) _confirmCallback();
+  _confirmCallback = null;
+});
+document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  _confirmCallback = null;
+});
+
+// 저장/로드
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  devices: state.devices,
+  scenarios: state.scenarios,
+  apiKeys: state.apiKeys,
+})); }
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const p = JSON.parse(raw);
+    if (p.devices) state.devices = p.devices;
+    if (p.scenarios) state.scenarios = p.scenarios;
+    if (p.apiKeys) state.apiKeys = p.apiKeys;
+  } catch(e){}
+}
+
+// 플랫폼별 정보
+const PLATFORMS = {
+  lg: { name: 'LG ThinQ', icon: '🅻🅶', appUrl: 'lgthinq://', webUrl: 'https://www.lge.co.kr/thinq', badgeClass: 'lg' },
+  samsung: { name: '삼성 SmartThings', icon: '🔵', appUrl: 'smartthings://', webUrl: 'https://www.smartthings.com/', badgeClass: 'samsung' },
+  xiaomi: { name: '샤오미 미홈', icon: '🟡', appUrl: 'mihome://', webUrl: 'https://home.mi.com/', badgeClass: 'xiaomi' },
+  apple: { name: 'Apple HomeKit', icon: '🍎', appUrl: 'com.apple.home://', webUrl: 'https://www.apple.com/home/', badgeClass: 'other' },
+  google: { name: 'Google Home', icon: '🌐', appUrl: 'googlehome://', webUrl: 'https://home.google.com/', badgeClass: 'other' },
+  naver: { name: '네이버 클로바', icon: '🔆', appUrl: '', webUrl: 'https://clova.ai/', badgeClass: 'other' },
+  kakao: { name: '카카오홈', icon: '💬', appUrl: '', webUrl: 'https://home.kakao.com/', badgeClass: 'other' },
+  other: { name: '기타', icon: '📦', appUrl: '', webUrl: '', badgeClass: 'other' },
+};
+
+const CATEGORIES = {
+  aircon: '🌡️ 에어컨', tv: '📺 TV', light: '💡 조명', cleaner: '🌬️ 공기청정기',
+  fridge: '🧊 냉장고', washer: '🧺 세탁기', dryer: '👕 건조기', robot: '🤖 로봇청소기',
+  doorlock: '🚪 도어락', speaker: '🔊 스피커', boiler: '🔥 보일러', curtain: '🪟 커튼',
+  oven: '🍞 오븐', cam: '📷 홈캠', other: '📦 기타',
+};
+
+// 렌더링
+function renderAll() {
+  renderBanner();
+  renderDevices();
+  renderScenarios();
+  renderInfo();
+}
+
+function renderBanner() {
+  const total = state.devices.length;
+  document.getElementById('totalDeviceCount').textContent = `${total}대`;
+
+  // 플랫폼별 카운트
+  const byPlat = {};
+  state.devices.forEach(d => { byPlat[d.platform] = (byPlat[d.platform] || 0) + 1; });
+  const sortedPlats = Object.entries(byPlat).sort((a,b) => b[1] - a[1]).slice(0, 3);
+  const platformText = sortedPlats.length > 0
+    ? sortedPlats.map(([p, c]) => `${PLATFORMS[p]?.name?.split(' ')[0] || p} ${c}`).join(', ')
+    : '아직 등록된 가전이 없어요';
+  document.getElementById('platformBreakdown').textContent = platformText;
+
+  document.getElementById('totalScenarioCount').textContent = `${state.scenarios.length}개`;
+
+  const rooms = new Set(state.devices.map(d => d.room).filter(Boolean));
+  document.getElementById('totalRoomCount').textContent = `${rooms.size}개`;
+}
+
+function renderDevices() {
+  const grid = document.getElementById('devicesGrid');
+  let devices = state.devices.slice();
+  if (state.filterPlatform !== 'all') {
+    devices = devices.filter(d => d.platform === state.filterPlatform);
+  }
+  // 방 → 카테고리 → 이름 순 정렬
+  devices.sort((a, b) => {
+    const r = (a.room || '').localeCompare(b.room || '');
+    if (r !== 0) return r;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (devices.length === 0) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="big">🏠</div><div class="label">${state.devices.length === 0 ? '아직 등록된 가전이 없어요' : '필터 조건에 맞는 가전이 없어요'}</div><div class="sub">${state.devices.length === 0 ? '우측 상단 "+ 가전 추가" 버튼으로 시작해보세요' : '다른 필터를 선택하거나 가전을 추가해보세요'}</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = devices.map(d => {
+    const plat = PLATFORMS[d.platform] || PLATFORMS.other;
+    const catLabel = CATEGORIES[d.category] || '📦 기타';
+    return `
+      <div class="device-card">
+        <div class="device-head">
+          <div class="device-emoji">${escapeHtml(d.emoji || catLabel.split(' ')[0])}</div>
+          <div class="device-info">
+            <div class="device-name">${escapeHtml(d.name)}</div>
+            <div class="device-meta">
+              <span class="device-platform-badge ${plat.badgeClass}">${plat.icon} ${plat.name.split(' ')[0]}</span>
+              ${d.room ? `<span class="device-room">📍 ${escapeHtml(d.room)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="device-actions">
+          <button class="btn small primary" onclick="openDeviceApp('${d.id}')">앱 열기</button>
+          <button class="btn small" onclick="editDevice('${d.id}')">수정</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.openDeviceApp = (id) => {
+  const d = state.devices.find(x => x.id === id);
+  if (!d) return;
+  const plat = PLATFORMS[d.platform] || PLATFORMS.other;
+
+  // 모바일: 앱 실행 시도 (deep link)
+  // 웹/데스크톱: 웹사이트 열기
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile && plat.appUrl) {
+    // deep link 시도
+    const startTime = Date.now();
+    window.location.href = plat.appUrl;
+    // 1.5초 후 앱 안 열렸으면 웹사이트로
+    setTimeout(() => {
+      if (Date.now() - startTime < 2000 && plat.webUrl) {
+        window.open(plat.webUrl, '_blank');
+      }
+    }, 1500);
+  } else if (plat.webUrl) {
+    window.open(plat.webUrl, '_blank');
+  } else {
+    toast('이 플랫폼은 앱 / 웹 진입이 지원되지 않아요');
+  }
+};
+
+window.editDevice = (id) => openDeviceModal(id);
+
+function openDeviceModal(id) {
+  state.editingDeviceId = id || null;
+  const ex = id ? state.devices.find(d => d.id === id) : null;
+  document.getElementById('deviceModalTitle').textContent = ex ? '가전 수정' : '가전 추가';
+  document.getElementById('deviceName').value = ex?.name || '';
+  document.getElementById('deviceEmoji').value = ex?.emoji || '';
+  document.getElementById('deviceCategory').value = ex?.category || 'aircon';
+  document.getElementById('devicePlatform').value = ex?.platform || 'lg';
+  document.getElementById('deviceRoom').value = ex?.room || '';
+  document.getElementById('deviceModel').value = ex?.model || '';
+  document.getElementById('deviceAsNumber').value = ex?.asNumber || '';
+  document.getElementById('deviceManualUrl').value = ex?.manualUrl || '';
+  document.getElementById('deviceMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteDevice').style.display = ex ? '' : 'none';
+  showModal('modalDevice');
+}
+
+document.getElementById('btnAddDevice').addEventListener('click', () => openDeviceModal());
+
+document.getElementById('btnSaveDevice').addEventListener('click', () => {
+  const name = document.getElementById('deviceName').value.trim();
+  if (!name) return toast('이름을 입력해주세요');
+  const data = {
+    name,
+    emoji: document.getElementById('deviceEmoji').value.trim(),
+    category: document.getElementById('deviceCategory').value,
+    platform: document.getElementById('devicePlatform').value,
+    room: document.getElementById('deviceRoom').value.trim(),
+    model: document.getElementById('deviceModel').value.trim(),
+    asNumber: document.getElementById('deviceAsNumber').value.trim(),
+    manualUrl: document.getElementById('deviceManualUrl').value.trim(),
+    memo: document.getElementById('deviceMemo').value.trim(),
+  };
+  if (state.editingDeviceId) {
+    const i = state.devices.findIndex(d => d.id === state.editingDeviceId);
+    if (i !== -1) state.devices[i] = { ...state.devices[i], ...data };
+  } else {
+    state.devices.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+  }
+  save(); closeModal('modalDevice'); renderAll();
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteDevice').addEventListener('click', () => {
+  if (!state.editingDeviceId) return;
+  const d = state.devices.find(x => x.id === state.editingDeviceId);
+  closeModal('modalDevice');
+  confirmModal('가전 삭제', `${d?.name || '이 가전'}을(를) 삭제하시겠어요?`, () => {
+    state.devices = state.devices.filter(x => x.id !== state.editingDeviceId);
+    state.editingDeviceId = null;
+    save(); renderAll();
+    toast('삭제되었습니다');
+  }, '삭제');
+});
+
+// 플랫폼 필터
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    state.filterPlatform = chip.dataset.filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+    renderDevices();
+  });
+});
+
+// 자동화 시나리오 렌더
+function renderScenarios() {
+  const wrap = document.getElementById('scenariosList');
+  if (state.scenarios.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">⚡</div><div class="label">아직 자동화 시나리오가 없어요</div><div class="sub">"외출 모드", "취침 모드" 같은 시나리오를 메모해보세요</div></div>`;
+    return;
+  }
+  wrap.innerHTML = state.scenarios.map(s => `
+    <div class="scenario-card">
+      <div class="scenario-head">
+        <div style="flex:1;min-width:0;">
+          <div class="scenario-title">${escapeHtml(s.emoji || '⚡')} ${escapeHtml(s.name)}</div>
+          ${s.description ? `<div class="scenario-desc">${escapeHtml(s.description)}</div>` : ''}
+        </div>
+        <button class="btn small" onclick="editScenario('${s.id}')">수정</button>
+      </div>
+      ${s.steps && s.steps.length > 0 ? `
+        <div class="scenario-steps">
+          ${s.steps.map((step, i) => `<div class="step"><span class="step-num">${i+1}.</span><span>${escapeHtml(step)}</span></div>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+window.editScenario = (id) => openScenarioModal(id);
+
+function openScenarioModal(id) {
+  state.editingScenarioId = id || null;
+  const ex = id ? state.scenarios.find(s => s.id === id) : null;
+  document.getElementById('scenarioModalTitle').textContent = ex ? '시나리오 수정' : '시나리오 추가';
+  document.getElementById('scenarioName').value = ex?.name || '';
+  document.getElementById('scenarioEmoji').value = ex?.emoji || '';
+  document.getElementById('scenarioDescription').value = ex?.description || '';
+  document.getElementById('scenarioSteps').value = (ex?.steps || []).join('\n');
+  document.getElementById('btnDeleteScenario').style.display = ex ? '' : 'none';
+  showModal('modalScenario');
+}
+
+document.getElementById('btnAddScenario').addEventListener('click', () => openScenarioModal());
+
+document.getElementById('btnSaveScenario').addEventListener('click', () => {
+  const name = document.getElementById('scenarioName').value.trim();
+  if (!name) return toast('이름을 입력해주세요');
+  const stepsText = document.getElementById('scenarioSteps').value;
+  const steps = stepsText.split('\n').map(s => s.trim()).filter(Boolean);
+  const data = {
+    name,
+    emoji: document.getElementById('scenarioEmoji').value.trim(),
+    description: document.getElementById('scenarioDescription').value.trim(),
+    steps,
+  };
+  if (state.editingScenarioId) {
+    const i = state.scenarios.findIndex(s => s.id === state.editingScenarioId);
+    if (i !== -1) state.scenarios[i] = { ...state.scenarios[i], ...data };
+  } else {
+    state.scenarios.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+  }
+  save(); closeModal('modalScenario'); renderAll();
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteScenario').addEventListener('click', () => {
+  if (!state.editingScenarioId) return;
+  const s = state.scenarios.find(x => x.id === state.editingScenarioId);
+  closeModal('modalScenario');
+  confirmModal('시나리오 삭제', `"${s?.name || '이 시나리오'}"를 삭제하시겠어요?`, () => {
+    state.scenarios = state.scenarios.filter(x => x.id !== state.editingScenarioId);
+    state.editingScenarioId = null;
+    save(); renderAll();
+    toast('삭제되었습니다');
+  }, '삭제');
+});
+
+// 가전 모델/AS 정보
+function renderInfo() {
+  const wrap = document.getElementById('infoList');
+  const withInfo = state.devices.filter(d => d.model || d.asNumber || d.manualUrl || d.memo);
+  if (withInfo.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">📋</div><div class="label">아직 등록된 모델/AS 정보가 없어요</div><div class="sub">가전 추가 시 모델명, AS 번호, 매뉴얼을 입력해두면 여기에 정리됩니다</div></div>`;
+    return;
+  }
+  // 방 별로 그룹화
+  const byRoom = {};
+  withInfo.forEach(d => {
+    const room = d.room || '기타';
+    if (!byRoom[room]) byRoom[room] = [];
+    byRoom[room].push(d);
+  });
+  wrap.innerHTML = Object.keys(byRoom).map(room => `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;padding:0 4px;">📍 ${escapeHtml(room)}</div>
+      ${byRoom[room].map(d => `
+        <div class="info-card" style="margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${escapeHtml(d.emoji || '📦')} ${escapeHtml(d.name)}</div>
+          ${d.model ? `<div class="info-row"><span class="label">모델명</span><span class="value">${escapeHtml(d.model)}</span></div>` : ''}
+          ${d.asNumber ? `<div class="info-row"><span class="label">AS</span><span class="value"><a href="tel:${escapeHtml(d.asNumber)}">${escapeHtml(d.asNumber)}</a></span></div>` : ''}
+          ${d.manualUrl ? `<div class="info-row"><span class="label">매뉴얼</span><span class="value"><a href="${escapeHtml(d.manualUrl)}" target="_blank" rel="noopener">${escapeHtml(d.manualUrl.length > 50 ? d.manualUrl.slice(0, 50) + '...' : d.manualUrl)}</a></span></div>` : ''}
+          ${d.memo ? `<div class="info-row"><span class="label">메모</span><span class="value">${escapeHtml(d.memo)}</span></div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// 섹션 탭
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    state.currentSection = tab.dataset.section;
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.section-pane').forEach(p => p.classList.toggle('active', p.id === 'section-' + tab.dataset.section));
+  });
+});
+
+// 데이터 백업/복원
+document.getElementById('btnExportData').addEventListener('click', () => {
+  const data = {
+    devices: state.devices,
+    scenarios: state.scenarios,
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lifeos-home-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('내보냈습니다');
+});
+
+document.getElementById('btnImportData').addEventListener('click', () => {
+  document.getElementById('fileImport').click();
+});
+
+document.getElementById('fileImport').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    confirmModal('데이터 가져오기', '현재 가전/시나리오 데이터가 모두 덮어써집니다. 계속하시겠어요?', () => {
+      if (data.devices) state.devices = data.devices;
+      if (data.scenarios) state.scenarios = data.scenarios;
+      save(); renderAll();
+      toast('가져왔습니다');
+    }, '가져오기', 'btn primary');
+  } catch(err) {
+    toast('올바른 JSON 파일이 아닙니다');
+  }
+  e.target.value = '';
+});
+
+// 초기화
+load();
+renderAll();
+</script>
+</body>
+</html>

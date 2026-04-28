@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🏠 집안 관리 - 라이프 OS</title>
+<style>
+:root {
+  --primary: #14B8A6;
+  --primary-dark: #0F766E;
+  --primary-light: #CCFBF1;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --success: #10B981;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+.app { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  color: #fff;
+  padding: 22px 24px;
+  border-radius: 18px;
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+.header .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  text-decoration: none;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; position: relative; z-index: 1; }
+.header .desc { font-size: 12.5px; color: rgba(255,255,255,0.85); position: relative; z-index: 1; }
+
+/* 통계 카드 */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.summary-card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+.summary-card .num { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.summary-card.danger .num { color: var(--danger); }
+.summary-card.warning .num { color: var(--warning); }
+
+/* 탭 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* 액션 바 */
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.action-bar h2 { font-size: 15px; font-weight: 700; margin: 0; }
+
+/* 버튼 */
+.btn {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--bg); }
+.btn.small { padding: 5px 10px; font-size: 11.5px; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-dark); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger:hover { opacity: 0.9; }
+
+/* 항목 카드 */
+.item-list { display: flex; flex-direction: column; gap: 8px; }
+.item-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.15s;
+}
+.item-card:hover { border-color: var(--primary); }
+.item-card.overdue { border-color: #FCA5A5; background: #FEF2F2; }
+.item-card.upcoming { border-color: #FCD34D; background: #FFFBEB; }
+.item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.item-card.overdue .item-icon { background: #FECACA; color: #991B1B; }
+.item-card.upcoming .item-icon { background: #FEF3C7; color: #78350F; }
+.item-body { flex: 1; min-width: 0; }
+.item-name { font-size: 13px; font-weight: 600; }
+.item-meta { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+.item-meta .ddays { font-weight: 700; }
+.item-card.overdue .item-meta .ddays { color: var(--danger); }
+.item-card.upcoming .item-meta .ddays { color: var(--warning); }
+.item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+}
+.icon-btn:hover { background: var(--bg); color: var(--text); }
+
+/* 빈 상태 */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.empty .big { font-size: 48px; margin-bottom: 8px; }
+.empty .label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.empty .sub { font-size: 12px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
+
+/* 모달 */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 460px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 22px;
+}
+.modal h3 { font-size: 16px; font-weight: 700; margin: 0 0 14px; }
+.field { margin-bottom: 12px; }
+.field label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: center;
+}
+
+/* 수리 이력 카드 */
+.repair-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.repair-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.repair-name { font-size: 13px; font-weight: 600; }
+.repair-date { font-size: 11px; color: var(--text-tertiary); }
+.repair-cost { font-size: 14px; font-weight: 700; color: var(--primary-dark); }
+.repair-meta {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15,23,42,0.92);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 2000;
+  opacity: 0;
+  transition: all 0.25s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 600px) {
+  .summary-grid { gap: 6px; }
+  .summary-card .num { font-size: 18px; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <a href="index.html" class="back">← 홈으로</a>
+    <h1>🏠 집안 관리</h1>
+    <div class="desc">필터 교체 · 정기 점검 · 수리 이력 · 정기 알림</div>
+  </div>
+
+  <!-- 통계 -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="label">전체 항목</div>
+      <div class="num" id="totalCount">0</div>
+    </div>
+    <div class="summary-card warning">
+      <div class="label">7일 이내</div>
+      <div class="num" id="upcomingCount">0</div>
+    </div>
+    <div class="summary-card danger">
+      <div class="label">기한 지남</div>
+      <div class="num" id="overdueCount">0</div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab active" data-tab="upcoming">⏰ 다가오는 관리</button>
+    <button class="tab" data-tab="all">📋 전체 항목</button>
+    <button class="tab" data-tab="repairs">🔧 수리 이력</button>
+  </div>
+
+  <!-- 다가오는 관리 -->
+  <div class="tab-pane" id="pane-upcoming">
+    <div class="action-bar">
+      <h2>⏰ 곧 관리해야 할 항목</h2>
+    </div>
+    <div id="upcomingList"></div>
+  </div>
+
+  <!-- 전체 항목 -->
+  <div class="tab-pane" id="pane-all" style="display:none;">
+    <div class="action-bar">
+      <h2>📋 모든 정기 관리 항목</h2>
+      <div style="display:flex;gap:6px;">
+        <button class="btn small" id="btnAutoItems">📋 표준 리스트</button>
+        <button class="btn primary small" id="btnAddItem">+ 항목 추가</button>
+      </div>
+    </div>
+    <div id="allList"></div>
+  </div>
+
+  <!-- 수리 이력 -->
+  <div class="tab-pane" id="pane-repairs" style="display:none;">
+    <div class="action-bar">
+      <h2>🔧 수리/공사 이력</h2>
+      <button class="btn primary small" id="btnAddRepair">+ 수리 추가</button>
+    </div>
+    <div id="repairList"></div>
+  </div>
+</div>
+
+<!-- 항목 추가/수정 모달 -->
+<div class="modal-bg" id="modalItem">
+  <div class="modal">
+    <h3 id="itemTitle">정기 관리 항목 추가</h3>
+    <div class="field"><label>이름</label><input id="itemName" placeholder="예: 정수기 필터 교체"></div>
+    <div class="field-row">
+      <div class="field">
+        <label>분류</label>
+        <select id="itemCategory">
+          <option value="filter">🔄 필터/소모품</option>
+          <option value="cleaning">🧹 청소</option>
+          <option value="inspection">🔍 점검</option>
+          <option value="battery">🔋 배터리</option>
+          <option value="car">🚗 차량</option>
+          <option value="other">📦 기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>주기</label>
+        <select id="itemPeriod">
+          <option value="1">매월</option>
+          <option value="2">2개월</option>
+          <option value="3">3개월</option>
+          <option value="4">4개월 (계절별)</option>
+          <option value="6">6개월</option>
+          <option value="12">1년</option>
+          <option value="24">2년</option>
+          <option value="36">3년</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>마지막 교체/점검일</label><input type="date" id="itemLastDate"></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="itemMemo" rows="2" placeholder="예: 코웨이 필터 / 매장 010-..."></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteItem" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalItem')">취소</button>
+      <button class="btn primary" id="btnSaveItem">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수리 추가/수정 모달 -->
+<div class="modal-bg" id="modalRepair">
+  <div class="modal">
+    <h3 id="repairTitle">수리 이력 추가</h3>
+    <div class="field"><label>수리 내용</label><input id="repairName" placeholder="예: 화장실 누수, 벽지 도배"></div>
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="repairDate"></div>
+      <div class="field"><label>비용 (원)</label><input id="repairCost" type="number" placeholder="300000" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>업체/연락처 (선택)</label><input id="repairVendor" placeholder="예: 김설비 010-1234-5678"></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="repairMemo" rows="2" placeholder="보증 1년 / 다음 점검은 2027.05"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteRepair" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalRepair')">취소</button>
+      <button class="btn primary" id="btnSaveRepair">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm 모달 -->
+<div class="modal-bg" id="modalConfirm">
+  <div class="modal" style="max-width:360px;">
+    <h3 id="confirmTitle">확인</h3>
+    <div id="confirmMsg" style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;"></div>
+    <div class="actions" style="justify-content:flex-end;">
+      <button class="btn" id="btnConfirmCancel">취소</button>
+      <button class="btn danger" id="btnConfirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'lifeos-maintenance-v1';
+
+// ===== 한국 가정 표준 정기 관리 항목 =====
+const PRESET = [
+  // 필터/소모품
+  { name: '정수기 필터 교체', category: 'filter', periodMonths: 3, memo: '' },
+  { name: '청소기 필터 교체', category: 'filter', periodMonths: 6, memo: '' },
+  { name: '에어컨 필터 청소', category: 'filter', periodMonths: 6, memo: '여름 시작 전' },
+
+  // 점검
+  { name: '보일러 점검', category: 'inspection', periodMonths: 12, memo: '겨울 시작 전 (10~11월)' },
+  { name: '가스레인지 호스 점검', category: 'inspection', periodMonths: 12, memo: '도시가스 정기점검 시' },
+  { name: '에어컨 청소 (전문 업체)', category: 'inspection', periodMonths: 12, memo: '여름 직전' },
+
+  // 청소
+  { name: '세탁기 통세척', category: 'cleaning', periodMonths: 3, memo: '' },
+  { name: '욕실 곰팡이 청소', category: 'cleaning', periodMonths: 1, memo: '' },
+  { name: '베란다/창문 청소', category: 'cleaning', periodMonths: 3, memo: '' },
+  { name: '환풍기 청소', category: 'cleaning', periodMonths: 3, memo: '주방/화장실' },
+  { name: '냉장고 청소', category: 'cleaning', periodMonths: 3, memo: '' },
+
+  // 배터리
+  { name: '화재감지기 배터리 교체', category: 'battery', periodMonths: 12, memo: '아파트 의무' },
+  { name: '도어록 배터리 교체', category: 'battery', periodMonths: 12, memo: '' },
+
+  // 기타
+  { name: '매트리스 뒤집기', category: 'other', periodMonths: 3, memo: '균등 마모 방지' },
+  { name: '옷장 계절 정리', category: 'other', periodMonths: 4, memo: '봄/여름/가을/겨울' },
+  { name: '침구류 세탁 (이불/베개)', category: 'other', periodMonths: 1, memo: '' },
+
+  // 차량
+  { name: '엔진오일 교환', category: 'car', periodMonths: 6, memo: '5,000~10,000km 마다' },
+  { name: '자동차 정기검사', category: 'car', periodMonths: 24, memo: '한국교통안전공단' },
+  { name: '타이어 공기압 점검', category: 'car', periodMonths: 1, memo: '계절 전환 시 필수' },
+];
+
+const CATEGORY_LABELS = {
+  filter: { icon: '🔄', label: '필터/소모품' },
+  cleaning: { icon: '🧹', label: '청소' },
+  inspection: { icon: '🔍', label: '점검' },
+  battery: { icon: '🔋', label: '배터리' },
+  car: { icon: '🚗', label: '차량' },
+  other: { icon: '📦', label: '기타' },
+};
+
+let state = {
+  items: [],
+  repairs: [],
+  currentTab: 'upcoming',
+  editingItemId: null,
+  editingRepairId: null,
+};
+
+// 유틸
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+// 자체 confirm
+let _confirmCb = null;
+function confirmModal(title, msg, onOk, okLabel = '확인', okClass = 'btn danger') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const okBtn = document.getElementById('btnConfirmOk');
+  okBtn.textContent = okLabel;
+  okBtn.className = okClass;
+  _confirmCb = onOk;
+  showModal('modalConfirm');
+}
+document.getElementById('btnConfirmOk').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  if (_confirmCb) _confirmCb();
+  _confirmCb = null;
+});
+document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+  closeModal('modalConfirm');
+  _confirmCb = null;
+});
+
+// 저장/로드
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    items: state.items,
+    repairs: state.repairs,
+  }));
+}
+
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.items)) state.items = data.items;
+    if (Array.isArray(data.repairs)) state.repairs = data.repairs;
+  } catch(e) {}
+}
+
+// 다음 점검일 계산
+function calcNextDate(item) {
+  if (!item.lastDate) return null;
+  const d = new Date(item.lastDate);
+  if (isNaN(d.getTime())) return null;
+  d.setMonth(d.getMonth() + (item.periodMonths || 3));
+  return d;
+}
+
+// D-Day 계산
+function calcDays(date) {
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target - today) / 86400000);
+}
+
+function fmtDate(date) {
+  if (!date) return '-';
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function fmtDays(days) {
+  if (days == null) return '';
+  if (days === 0) return '오늘';
+  if (days < 0) return `${-days}일 지남`;
+  if (days === 1) return '내일';
+  return `${days}일 후`;
+}
+
+// 통계
+function renderSummary() {
+  const items = state.items;
+  document.getElementById('totalCount').textContent = items.length;
+  let upcoming = 0, overdue = 0;
+  items.forEach(item => {
+    const next = calcNextDate(item);
+    const days = calcDays(next);
+    if (days == null) return;
+    if (days < 0) overdue++;
+    else if (days <= 7) upcoming++;
+  });
+  document.getElementById('upcomingCount').textContent = upcoming;
+  document.getElementById('overdueCount').textContent = overdue;
+}
+
+// 다가오는 관리 (D-Day 정렬, 30일 이내 + 지난 항목)
+function renderUpcoming() {
+  const list = document.getElementById('upcomingList');
+  const items = state.items
+    .map(item => ({
+      ...item,
+      next: calcNextDate(item),
+      days: calcDays(calcNextDate(item)),
+    }))
+    .filter(it => it.days != null && it.days <= 30)
+    .sort((a, b) => a.days - b.days);
+
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="big">✅</div>
+        <div class="label">관리할 항목이 없어요</div>
+        <div class="sub">30일 이내에 관리해야 할 항목이 모두 깔끔!</div>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = `<div class="item-list">${items.map(item => renderItemCard(item)).join('')}</div>`;
+  attachItemListeners(list);
+}
+
+// 전체 항목
+function renderAll() {
+  const list = document.getElementById('allList');
+  if (state.items.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="big">🏠</div>
+        <div class="label">아직 등록된 항목이 없어요</div>
+        <div class="sub">[📋 표준 리스트]를 클릭해서<br>한국 가정 기본 항목 19개를 자동 등록할 수 있어요</div>
+        <button class="btn primary" id="emptyAutoBtn">📋 표준 리스트 등록</button>
+      </div>
+    `;
+    document.getElementById('emptyAutoBtn').addEventListener('click', autoLoadPreset);
+    return;
+  }
+
+  // 카테고리별 정렬
+  const cats = ['filter', 'cleaning', 'inspection', 'battery', 'car', 'other'];
+  const grouped = {};
+  cats.forEach(c => grouped[c] = []);
+  state.items.forEach(item => {
+    const next = calcNextDate(item);
+    const days = calcDays(next);
+    grouped[item.category || 'other'].push({ ...item, next, days });
+  });
+
+  let html = '';
+  cats.forEach(c => {
+    if (grouped[c].length === 0) return;
+    const cinfo = CATEGORY_LABELS[c];
+    grouped[c].sort((a, b) => (a.days ?? 999) - (b.days ?? 999));
+    html += `
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;padding-left:4px;">
+          ${cinfo.icon} ${cinfo.label} (${grouped[c].length})
+        </div>
+        <div class="item-list">
+          ${grouped[c].map(it => renderItemCard(it)).join('')}
+        </div>
+      </div>
+    `;
+  });
+  list.innerHTML = html;
+  attachItemListeners(list);
+}
+
+function renderItemCard(item) {
+  const cinfo = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.other;
+  let cls = '';
+  let dDayHtml = '';
+  if (item.days != null) {
+    if (item.days < 0) cls = 'overdue';
+    else if (item.days <= 7) cls = 'upcoming';
+    dDayHtml = `<span class="ddays">${fmtDays(item.days)}</span> · `;
+  }
+
+  const periodLabel = item.periodMonths === 1 ? '매월' :
+                      item.periodMonths === 12 ? '매년' :
+                      `${item.periodMonths}개월`;
+
+  const nextStr = item.next ? fmtDate(item.next) : '미설정';
+
+  return `
+    <div class="item-card ${cls}" data-id="${item.id}">
+      <div class="item-icon">${cinfo.icon}</div>
+      <div class="item-body">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        <div class="item-meta">${dDayHtml}${periodLabel} · 다음 ${nextStr}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" data-action="done" data-id="${item.id}" title="완료 처리 (오늘로 갱신)">✅</button>
+        <button class="icon-btn" data-action="edit" data-id="${item.id}" title="수정">✏️</button>
+      </div>
+    </div>
+  `;
+}
+
+function attachItemListeners(container) {
+  container.querySelectorAll('[data-action="done"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      markDone(btn.dataset.id);
+    });
+  });
+  container.querySelectorAll('[data-action="edit"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openItemModal(btn.dataset.id);
+    });
+  });
+}
+
+function markDone(id) {
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+  confirmModal('완료 처리', `"${item.name}" 을(를) 오늘 날짜로 갱신할까요?`, () => {
+    item.lastDate = isoDate(new Date());
+    save();
+    renderAllSections();
+    toast('✅ 완료 처리되었어요. 다음 일정이 갱신됐어요');
+  }, '완료', 'btn primary');
+}
+
+// 항목 모달
+function openItemModal(id) {
+  state.editingItemId = id || null;
+  if (id) {
+    const item = state.items.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('itemTitle').textContent = '항목 수정';
+    document.getElementById('itemName').value = item.name;
+    document.getElementById('itemCategory').value = item.category || 'other';
+    document.getElementById('itemPeriod').value = String(item.periodMonths || 3);
+    document.getElementById('itemLastDate').value = item.lastDate || '';
+    document.getElementById('itemMemo').value = item.memo || '';
+    document.getElementById('btnDeleteItem').style.display = '';
+  } else {
+    document.getElementById('itemTitle').textContent = '항목 추가';
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemCategory').value = 'filter';
+    document.getElementById('itemPeriod').value = '3';
+    document.getElementById('itemLastDate').value = isoDate(new Date());
+    document.getElementById('itemMemo').value = '';
+    document.getElementById('btnDeleteItem').style.display = 'none';
+  }
+  showModal('modalItem');
+}
+
+document.getElementById('btnAddItem').addEventListener('click', () => openItemModal());
+
+document.getElementById('btnSaveItem').addEventListener('click', () => {
+  const name = document.getElementById('itemName').value.trim();
+  if (!name) return toast('이름을 입력해주세요');
+  const data = {
+    name,
+    category: document.getElementById('itemCategory').value,
+    periodMonths: parseInt(document.getElementById('itemPeriod').value) || 3,
+    lastDate: document.getElementById('itemLastDate').value || null,
+    memo: document.getElementById('itemMemo').value.trim(),
+  };
+  if (state.editingItemId) {
+    const item = state.items.find(i => i.id === state.editingItemId);
+    if (item) Object.assign(item, data);
+  } else {
+    state.items.push({ id: uid(), ...data });
+  }
+  save();
+  renderAllSections();
+  closeModal('modalItem');
+  toast('저장되었어요');
+});
+
+document.getElementById('btnDeleteItem').addEventListener('click', () => {
+  if (!state.editingItemId) return;
+  state.items = state.items.filter(i => i.id !== state.editingItemId);
+  save();
+  renderAllSections();
+  closeModal('modalItem');
+  toast('삭제되었어요');
+});
+
+// 표준 리스트 등록
+function autoLoadPreset() {
+  confirmModal('표준 리스트 등록',
+    `한국 가정 표준 정기 관리 항목 ${PRESET.length}개를 자동 등록할까요?\n\n마지막 교체일은 '오늘'로 설정되며, 나중에 수정 가능해요.`,
+    () => {
+      const today = isoDate(new Date());
+      PRESET.forEach(p => {
+        // 중복 방지
+        if (state.items.some(i => i.name === p.name)) return;
+        state.items.push({
+          id: uid(),
+          name: p.name,
+          category: p.category,
+          periodMonths: p.periodMonths,
+          lastDate: today,
+          memo: p.memo || '',
+        });
+      });
+      save();
+      renderAllSections();
+      toast(`✅ ${PRESET.length}개 항목이 등록되었어요`);
+    }, '등록', 'btn primary');
+}
+
+document.getElementById('btnAutoItems').addEventListener('click', autoLoadPreset);
+
+// 수리 이력 렌더
+function renderRepairs() {
+  const list = document.getElementById('repairList');
+  if (state.repairs.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="big">🔧</div>
+        <div class="label">아직 수리 이력이 없어요</div>
+        <div class="sub">수리/공사 했을 때 기록해두면<br>업체 연락처와 보증기간을 평생 보관할 수 있어요</div>
+      </div>
+    `;
+    return;
+  }
+
+  // 날짜 역순 정렬
+  const sorted = state.repairs.slice().sort((a, b) => b.date.localeCompare(a.date));
+
+  // 연도별 그룹
+  const byYear = {};
+  sorted.forEach(r => {
+    const year = (r.date || '').slice(0, 4) || '연도 미정';
+    if (!byYear[year]) byYear[year] = [];
+    byYear[year].push(r);
+  });
+
+  // 총합
+  const totalCost = state.repairs.reduce((s, r) => s + (parseInt(r.cost) || 0), 0);
+
+  let html = `<div style="background:var(--primary-light);border:1px solid var(--primary);color:var(--primary-dark);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:12.5px;">
+    💰 총 수리 비용: <strong>${totalCost.toLocaleString()}원</strong> (${state.repairs.length}건)
+  </div>`;
+
+  Object.keys(byYear).sort((a,b) => b.localeCompare(a)).forEach(year => {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin:14px 0 6px;padding-left:4px;">${year}년</div>`;
+    byYear[year].forEach(r => {
+      html += `
+        <div class="repair-card" data-repair-id="${r.id}">
+          <div class="repair-head">
+            <div>
+              <div class="repair-name">${escapeHtml(r.name)}</div>
+              <div class="repair-date">${r.date}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${r.cost ? `<div class="repair-cost">${parseInt(r.cost).toLocaleString()}원</div>` : ''}
+              <button class="icon-btn" data-edit-repair="${r.id}">✏️</button>
+            </div>
+          </div>
+          ${r.vendor ? `<div class="repair-meta">📞 ${escapeHtml(r.vendor)}</div>` : ''}
+          ${r.memo ? `<div class="repair-meta">💬 ${escapeHtml(r.memo)}</div>` : ''}
+        </div>
+      `;
+    });
+  });
+
+  list.innerHTML = html;
+  list.querySelectorAll('[data-edit-repair]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openRepairModal(btn.dataset.editRepair);
+    });
+  });
+}
+
+function openRepairModal(id) {
+  state.editingRepairId = id || null;
+  if (id) {
+    const r = state.repairs.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('repairTitle').textContent = '수리 이력 수정';
+    document.getElementById('repairName').value = r.name || '';
+    document.getElementById('repairDate').value = r.date || '';
+    document.getElementById('repairCost').value = r.cost || '';
+    document.getElementById('repairVendor').value = r.vendor || '';
+    document.getElementById('repairMemo').value = r.memo || '';
+    document.getElementById('btnDeleteRepair').style.display = '';
+  } else {
+    document.getElementById('repairTitle').textContent = '수리 이력 추가';
+    document.getElementById('repairName').value = '';
+    document.getElementById('repairDate').value = isoDate(new Date());
+    document.getElementById('repairCost').value = '';
+    document.getElementById('repairVendor').value = '';
+    document.getElementById('repairMemo').value = '';
+    document.getElementById('btnDeleteRepair').style.display = 'none';
+  }
+  showModal('modalRepair');
+}
+
+document.getElementById('btnAddRepair').addEventListener('click', () => openRepairModal());
+
+document.getElementById('btnSaveRepair').addEventListener('click', () => {
+  const name = document.getElementById('repairName').value.trim();
+  const date = document.getElementById('repairDate').value;
+  if (!name) return toast('수리 내용을 입력해주세요');
+  if (!date) return toast('날짜를 선택해주세요');
+  const data = {
+    name,
+    date,
+    cost: document.getElementById('repairCost').value,
+    vendor: document.getElementById('repairVendor').value.trim(),
+    memo: document.getElementById('repairMemo').value.trim(),
+  };
+  if (state.editingRepairId) {
+    const r = state.repairs.find(x => x.id === state.editingRepairId);
+    if (r) Object.assign(r, data);
+  } else {
+    state.repairs.push({ id: uid(), ...data });
+  }
+  save();
+  renderAllSections();
+  closeModal('modalRepair');
+  toast('저장되었어요');
+});
+
+document.getElementById('btnDeleteRepair').addEventListener('click', () => {
+  if (!state.editingRepairId) return;
+  state.repairs = state.repairs.filter(r => r.id !== state.editingRepairId);
+  save();
+  renderAllSections();
+  closeModal('modalRepair');
+  toast('삭제되었어요');
+});
+
+// 탭 전환
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    state.currentTab = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+    document.getElementById('pane-' + state.currentTab).style.display = '';
+    renderAllSections();
+  });
+});
+
+function renderAllSections() {
+  renderSummary();
+  if (state.currentTab === 'upcoming') renderUpcoming();
+  else if (state.currentTab === 'all') renderAll();
+  else if (state.currentTab === 'repairs') renderRepairs();
+}
+
+// 시작
+load();
+renderAllSections();
+</script>
+</body>
+</html>

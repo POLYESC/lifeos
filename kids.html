@@ -1,0 +1,3192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자녀 기록 · 라이프 OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F7F8FC; --surface: #FFFFFF;
+  --border: #E5E8EF;
+  --text: #0F172A; --text-secondary: #64748B; --text-tertiary: #94A3B8;
+  --primary: #4F7CFF;
+  --kids: #22C55E; --kids-soft: #DCFCE7;
+  --expense: #EF4444;
+  --shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'Noto Sans KR','Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-0.01em;}
+.app{max-width:1200px;margin:0 auto;padding:28px 24px 80px;}
+
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.title-block h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+.title-block .subtitle{font-size:11.5px;color:var(--text-secondary);margin-top:2px;}
+.home-link{font-size:12px;color:var(--text-secondary);text-decoration:none;display:flex;align-items:center;gap:4px;}
+.home-link:hover{color:var(--primary);}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;font-family:inherit;}
+.btn:hover{border-color:var(--primary);color:var(--primary);}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn.primary:hover{background:#3D67EB;border-color:#3D67EB;color:#fff;}
+.btn.danger{background:#fff;color:var(--expense);border-color:#FECACA;}
+.btn.danger:hover{background:#FEF2F2;}
+.btn.small{padding:5px 10px;font-size:11.5px;}
+.btn.kids{background:var(--kids);color:#fff;border-color:var(--kids);}
+.btn.kids:hover{background:#16A34A;border-color:#16A34A;color:#fff;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:var(--shadow);}
+
+.no-kid{text-align:center;padding:48px 20px;color:var(--text-tertiary);}
+.no-kid .big{font-size:48px;margin-bottom:14px;}
+.no-kid .label{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.no-kid .sub{font-size:12.5px;margin-bottom:18px;}
+
+.kid-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.kid-tab{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border:1px solid var(--border);border-radius:24px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;}
+.kid-tab.active{background:var(--kids);color:#fff;border-color:var(--kids);}
+.kid-tab .age{font-size:11px;opacity:0.8;}
+.kid-tab.add{border-style:dashed;color:var(--text-tertiary);}
+
+.section-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;}
+.section-tab{padding:10px 16px;border:none;background:none;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap;}
+.section-tab.active{color:var(--kids);border-bottom-color:var(--kids);}
+.section-pane{display:none;}
+.section-pane.active{display:block;}
+
+.banner{background:linear-gradient(135deg,#22C55E 0%,#86EFAC 100%);color:#fff;border-radius:16px;padding:24px;margin-bottom:20px;}
+.banner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;}
+.banner-stat .label{font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;margin-bottom:4px;}
+.banner-stat .value{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+.banner-stat .sub{font-size:11px;color:rgba(255,255,255,0.75);margin-top:2px;}
+
+.entries-list{display:flex;flex-direction:column;gap:10px;}
+.entry-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.entry-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.entry-date{font-size:11px;color:var(--text-tertiary);font-weight:500;}
+.entry-title{font-size:14px;font-weight:600;margin-top:2px;}
+.entry-text{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;line-height:1.6;margin-top:6px;}
+.entry-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+.entry-tag{font-size:10.5px;background:var(--kids-soft);color:#166534;padding:2px 8px;border-radius:10px;font-weight:500;}
+
+.growth-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.growth-stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;}
+.growth-stat .label{font-size:11px;color:var(--text-secondary);font-weight:500;}
+.growth-stat .value{font-size:24px;font-weight:700;margin-top:4px;}
+.growth-stat .sub{font-size:11px;color:var(--text-tertiary);margin-top:4px;}
+.chart-wrap{position:relative;height:240px;margin-top:14px;}
+
+.milestone-list{display:flex;flex-direction:column;gap:8px;}
+.milestone-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#FAFBFC;border:1px solid var(--border);border-radius:10px;}
+.milestone-icon{font-size:22px;flex-shrink:0;}
+.milestone-content{flex:1;min-width:0;}
+.milestone-date{font-size:11px;color:var(--text-tertiary);}
+.milestone-text{font-size:13px;font-weight:500;margin-top:2px;}
+
+/* 자동 마일스톤 추천 카드 */
+.auto-milestone-card{background:linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%);border:1px solid #F59E0B;border-radius:12px;padding:14px;margin-bottom:14px;}
+.auto-milestone-card .header{font-size:12px;font-weight:700;color:#78350F;margin-bottom:4px;}
+.auto-milestone-card .sub{font-size:11px;color:#92400E;margin-bottom:10px;line-height:1.5;}
+.auto-milestone-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;}
+.auto-milestone-btn{background:#fff;border:1px solid #FCD34D;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;text-align:left;transition:all 0.15s;font-size:11.5px;color:#78350F;}
+.auto-milestone-btn:hover{background:#FFFBEB;border-color:#F59E0B;}
+.auto-milestone-btn .ic{font-size:16px;flex-shrink:0;}
+.auto-milestone-btn .tx{flex:1;min-width:0;line-height:1.3;}
+
+/* 일기 사진 */
+.entry-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:10px;}
+.entry-photo{aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg);position:relative;}
+.entry-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.entry-photo:hover{transform:scale(1.02);transition:transform 0.15s;}
+
+/* 사진 첨부 (모달 안) */
+.photo-attach{margin-top:8px;}
+.photo-attach-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+.photo-attach-item{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg);}
+.photo-attach-item img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-attach-item .remove{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.7);color:#fff;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:700;}
+.photo-attach-add{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;color:var(--text-tertiary);font-size:11px;}
+.photo-attach-add:hover{background:#fff;border-color:var(--primary);color:var(--primary);}
+.photo-attach-add .icon{font-size:20px;margin-bottom:2px;}
+
+/* 사진 라이트박스 */
+.lightbox-bg{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.lightbox-bg.show{display:flex;}
+.lightbox-img{max-width:100%;max-height:90vh;object-fit:contain;border-radius:8px;}
+.lightbox-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:24px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.lightbox-close:hover{background:rgba(255,255,255,0.3);}
+
+/* 육아용품 */
+.shopping-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.shop-summary-card{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;}
+.shop-summary-card:hover{border-color:var(--kids);}
+.shop-summary-card.active{border-color:var(--kids);background:#FEF7F9;}
+.shop-summary-card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.shop-summary-card .icon-lbl{font-size:12px;font-weight:600;color:var(--text-secondary);}
+.shop-summary-card .pct{font-size:11px;color:var(--kids);font-weight:600;}
+.shop-summary-card .count{font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px;}
+.shop-summary-card .count .num{color:var(--text);}
+.shop-summary-card .count .total{color:var(--text-tertiary);font-size:14px;}
+.shop-summary-card .bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;}
+.shop-summary-card .bar > div{height:100%;background:var(--kids);transition:width 0.3s;}
+
+.shopping-empty{padding:30px 20px;text-align:center;}
+.shopping-empty .big{font-size:48px;}
+.shopping-empty .label{font-weight:600;font-size:14px;margin-top:6px;color:var(--text);}
+.shopping-empty .sub{font-size:12px;color:var(--text-tertiary);margin-top:4px;}
+
+.cat-section{margin-bottom:18px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.cat-section-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);cursor:pointer;}
+.cat-section-head:hover{background:#F1F5F9;}
+.cat-section-head .ttl{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.cat-section-head .meta{font-size:11px;color:var(--text-tertiary);}
+.cat-section-head .toggle{font-size:11px;color:var(--text-tertiary);transition:transform 0.2s;}
+.cat-section.collapsed .toggle{transform:rotate(-90deg);}
+.cat-section.collapsed .cat-items{display:none;}
+.cat-items{padding:6px;}
+.shop-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;}
+.shop-item:hover{background:var(--bg);}
+.shop-item.checked{opacity:0.55;}
+.shop-item.checked .name{text-decoration:line-through;}
+.shop-item .check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+.shop-item.checked .check{background:var(--kids);border-color:var(--kids);color:#fff;}
+.shop-item .check::after{content:'';width:6px;height:10px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg) translate(-1px,-1px);display:none;}
+.shop-item.checked .check::after{display:block;}
+.shop-item .body{flex:1;min-width:0;}
+.shop-item .name{font-size:12.5px;font-weight:500;color:var(--text);}
+.shop-item .name .priority-mark{margin-right:5px;font-size:10px;}
+.shop-item .desc{font-size:10.5px;color:var(--text-tertiary);margin-top:1px;}
+.shop-item .desc .qty-tag{display:inline-block;background:var(--bg);padding:1px 6px;border-radius:3px;margin-right:4px;}
+.shop-item .actions{flex-shrink:0;display:flex;gap:4px;opacity:0;transition:opacity 0.15s;}
+.shop-item:hover .actions{opacity:1;}
+.shop-item .icon-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:4px;color:var(--text-tertiary);}
+.shop-item .icon-btn:hover{color:var(--text);}
+
+/* ===== 신생아 케어 섹션 ===== */
+.care-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.care-summary-card{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;}
+.care-summary-card .label{font-size:11px;color:var(--text-secondary);font-weight:500;margin-bottom:4px;}
+.care-summary-card .value{font-size:18px;font-weight:700;letter-spacing:-0.02em;}
+.care-summary-card .sub{font-size:10.5px;color:var(--text-tertiary);margin-top:2px;}
+
+.care-quick{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.care-btn{border:1.5px solid;border-radius:14px;padding:16px 8px;cursor:pointer;font-family:inherit;text-align:center;transition:transform 0.1s, box-shadow 0.1s;}
+.care-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.care-btn:active{transform:translateY(0);}
+.care-btn .emoji{font-size:24px;margin-bottom:4px;}
+.care-btn .lbl{font-size:12px;font-weight:600;}
+
+.care-date-nav{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+.care-date-label{font-size:13px;font-weight:600;flex:1;text-align:center;}
+
+.care-timeline{display:flex;flex-direction:column;gap:6px;}
+.care-event{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;}
+.care-event .time{font-size:11.5px;color:var(--text-tertiary);width:54px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+.care-event .icon{font-size:18px;flex-shrink:0;}
+.care-event .body{flex:1;min-width:0;}
+.care-event .title{font-size:13px;font-weight:600;}
+.care-event .desc{font-size:11.5px;color:var(--text-secondary);margin-top:2px;}
+.care-event .actions{display:flex;gap:4px;flex-shrink:0;}
+.care-event button.icon-btn{background:none;border:none;cursor:pointer;padding:4px 6px;font-size:12px;color:var(--text-tertiary);}
+.care-event button.icon-btn:hover{color:var(--text);}
+.care-event.fever{background:#FEF2F2;border-color:#FECACA;}
+
+@media (max-width: 600px) {
+  .care-quick{grid-template-columns:repeat(5,1fr);gap:6px;}
+  .care-btn{padding:12px 4px;}
+  .care-btn .emoji{font-size:20px;}
+  .care-btn .lbl{font-size:10.5px;}
+  .care-event .time{width:46px;font-size:10.5px;}
+}
+
+.empty{text-align:center;padding:36px 20px;color:var(--text-tertiary);}
+.empty .big{font-size:36px;margin-bottom:8px;}
+.empty .label{font-size:13px;margin-bottom:4px;}
+.empty .sub{font-size:11.5px;}
+
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,0.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;overflow-y:auto;}
+.modal-bg.show{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:14px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11.5px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;}
+.field input,.field textarea,.field select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;}
+.field textarea{resize:vertical;min-height:80px;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--primary);}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 18px;border-radius:8px;font-size:12.5px;opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:200;}
+.toast.show{opacity:1;}
+
+@media (max-width:600px){
+  .app{padding:18px 12px 60px;}
+  .banner-grid{grid-template-columns:1fr 1fr;}
+  .growth-grid{grid-template-columns:1fr;}
+  .modal{padding:16px;max-width:95%;}
+  .field-row{grid-template-columns:1fr;}
+  .title-block h1{font-size:18px;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<header>
+  <div class="title-block">
+    <a href="index.html" class="home-link">← 라이프 OS</a>
+    <h1>👶 자녀 기록</h1>
+    <div class="subtitle">KIDS JOURNAL</div>
+  </div>
+  <button class="btn kids" id="btnAddKid">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    자녀 추가
+  </button>
+</header>
+
+<div id="noKidView" style="display:none;">
+  <div class="card no-kid">
+    <div class="big">👶</div>
+    <div class="label">아직 등록된 자녀가 없어요</div>
+    <div class="sub">우측 상단에서 자녀를 추가하면 성장 기록을 시작할 수 있어요</div>
+    <button class="btn kids" id="btnAddKidEmpty">+ 자녀 추가하기</button>
+  </div>
+</div>
+
+<div id="kidView" style="display:none;">
+  <div class="kid-tabs" id="kidTabs"></div>
+
+  <div class="banner">
+    <div class="banner-grid">
+      <div class="banner-stat"><div class="label">현재 나이</div><div class="value" id="kidAge">-</div><div class="sub" id="kidBirth">-</div></div>
+      <div class="banner-stat"><div class="label">최근 키 / 몸무게</div><div class="value" id="kidLatest">-</div><div class="sub" id="kidLatestDate">-</div></div>
+      <div class="banner-stat"><div class="label">기록 일기</div><div class="value" id="kidEntryCount">0건</div><div class="sub" id="kidLastEntry">-</div></div>
+      <div class="banner-stat"><div class="label">마일스톤</div><div class="value" id="kidMilestoneCount">0개</div><div class="sub">달성한 순간들</div></div>
+    </div>
+  </div>
+
+  <div class="section-tabs">
+    <button class="section-tab active" data-section="diary">📔 일기</button>
+    <button class="section-tab" data-section="growth">📏 성장</button>
+    <button class="section-tab" data-section="care">🍼 신생아 케어</button>
+    <button class="section-tab" data-section="vaccine">💉 예방접종</button>
+    <button class="section-tab" data-section="visit">🏥 진료기록</button>
+    <button class="section-tab" data-section="chart">📊 패턴 차트</button>
+    <button class="section-tab" data-section="milestone">🌟 마일스톤</button>
+    <button class="section-tab" data-section="shopping">🛒 육아용품</button>
+    <button class="section-tab" data-section="info">ℹ️ 자녀 정보</button>
+  </div>
+
+  <div class="section-pane active" id="section-diary">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h2 style="font-size:15px;">일기 / 메모</h2>
+      <button class="btn primary small" id="btnAddEntry">+ 일기 작성</button>
+    </div>
+    <div class="entries-list" id="entriesList"></div>
+  </div>
+
+  <div class="section-pane" id="section-growth">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h2 style="font-size:15px;">성장 기록</h2>
+      <button class="btn primary small" id="btnAddGrowth">+ 키/몸무게 기록</button>
+    </div>
+    <div class="growth-grid">
+      <div class="growth-stat"><div class="label">📏 키</div><div class="value num" id="latestHeight">-</div><div class="sub" id="heightTrend">-</div></div>
+      <div class="growth-stat"><div class="label">⚖️ 몸무게</div><div class="value num" id="latestWeight">-</div><div class="sub" id="weightTrend">-</div></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;margin-bottom:10px;">📈 성장 추이</h3>
+      <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+      <div id="growthEmpty" style="display:none;text-align:center;padding:24px;color:var(--text-tertiary);font-size:12.5px;">💡 키/몸무게 기록을 추가하면 차트가 표시됩니다.</div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <h3 style="font-size:14px;margin-bottom:10px;">기록 목록</h3>
+      <div id="growthList"></div>
+    </div>
+  </div>
+
+  <div class="section-pane" id="section-milestone">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h2 style="font-size:15px;">마일스톤</h2>
+      <button class="btn primary small" id="btnAddMilestone">+ 마일스톤 추가</button>
+    </div>
+    <!-- 자동 추천 영역 -->
+    <div id="autoMilestoneArea"></div>
+    <div class="milestone-list" id="milestoneList"></div>
+  </div>
+
+  <!-- 신생아 케어 섹션 -->
+  <div class="section-pane" id="section-care">
+    <!-- 오늘 요약 카드 -->
+    <div class="care-summary" id="careSummary"></div>
+
+    <!-- 빠른 입력 버튼 -->
+    <div class="care-quick">
+      <button class="care-btn" data-care-add="feeding" style="background:#FFF7ED;border-color:#FED7AA;color:#9A3412;">
+        <div class="emoji">🍼</div><div class="lbl">수유</div>
+      </button>
+      <button class="care-btn" data-care-add="sleep" style="background:#EEF2FF;border-color:#C7D2FE;color:#3730A3;">
+        <div class="emoji">😴</div><div class="lbl">수면</div>
+      </button>
+      <button class="care-btn" data-care-add="temp" style="background:#FEF2F2;border-color:#FECACA;color:#991B1B;">
+        <div class="emoji">🌡️</div><div class="lbl">체온</div>
+      </button>
+      <button class="care-btn" data-care-add="med" style="background:#F5F3FF;border-color:#DDD6FE;color:#5B21B6;">
+        <div class="emoji">💊</div><div class="lbl">약물</div>
+      </button>
+      <button class="care-btn" data-care-add="bath" style="background:#ECFEFF;border-color:#A5F3FC;color:#155E75;">
+        <div class="emoji">🛁</div><div class="lbl">목욕</div>
+      </button>
+      <button class="care-btn" data-care-add="diaper" style="background:#FEF3C7;border-color:#FCD34D;color:#92400E;">
+        <div class="emoji">💩</div><div class="lbl">기저귀</div>
+      </button>
+    </div>
+
+    <!-- 날짜 네비게이션 -->
+    <div class="care-date-nav">
+      <button class="btn small" id="careDatePrev">‹ 이전</button>
+      <div class="care-date-label" id="careDateLabel">오늘</div>
+      <button class="btn small" id="careDateNext">다음 ›</button>
+      <button class="btn small" id="careDateToday" style="margin-left:auto;">오늘로</button>
+    </div>
+
+    <!-- 타임라인 -->
+    <div class="care-timeline" id="careTimeline"></div>
+  </div>
+
+  <!-- 육아용품 섹션 -->
+  <div class="section-pane" id="section-shopping">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <h2 style="font-size:15px;">🛒 육아용품 체크리스트</h2>
+        <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">출산 가방 · 집 준비 · 출산 후 케어</div>
+      </div>
+      <button class="btn primary small" id="btnAddShopping">+ 추가</button>
+    </div>
+
+    <!-- 카테고리 진행률 카드 -->
+    <div class="shopping-summary" id="shoppingSummary"></div>
+
+    <!-- 빈 상태 -->
+    <div class="empty shopping-empty" id="shoppingEmpty" style="display:none;">
+      <div class="big">🛒</div>
+      <div class="label">아직 등록된 육아용품이 없어요</div>
+      <div class="sub" style="margin-bottom:14px;">한국 출산 표준 리스트를 자동으로 등록할 수 있어요 (60+ 항목)</div>
+      <button class="btn primary" id="btnAutoShopping">📋 표준 리스트 자동 등록</button>
+    </div>
+
+    <!-- 카테고리별 리스트 -->
+    <div id="shoppingList"></div>
+  </div>
+
+  <div class="section-pane" id="section-info">
+    <div class="card" id="infoCard"></div>
+  </div>
+
+  <!-- 예방접종 섹션 -->
+  <div class="section-pane" id="section-vaccine">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <h2 style="font-size:15px;">💉 예방접종</h2>
+        <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">한국 표준예방접종 일정 자동 등록 · 완료 체크 가능</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn small" id="btnAutoVaccine">📋 표준 일정 자동 등록</button>
+        <button class="btn primary small" id="btnAddVaccine">+ 직접 추가</button>
+      </div>
+    </div>
+    <div id="vaccineSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;"></div>
+    <div id="vaccineList"></div>
+  </div>
+
+  <!-- 진료 기록 섹션 -->
+  <div class="section-pane" id="section-visit">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div>
+        <h2 style="font-size:15px;">🏥 진료 기록</h2>
+        <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">병원 방문 · 진단 · 처방 기록</div>
+      </div>
+      <button class="btn primary small" id="btnAddVisit">+ 진료 추가</button>
+    </div>
+    <div id="visitList"></div>
+  </div>
+
+  <!-- 패턴 차트 섹션 -->
+  <div class="section-pane" id="section-chart">
+    <div style="margin-bottom:14px;">
+      <h2 style="font-size:15px;">📊 패턴 차트</h2>
+      <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">최근 7일간의 수유/수면/체온 추이</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3 style="font-size:13px;margin-bottom:10px;">🍼 일별 수유 횟수 / 양</h3>
+      <div class="chart-wrap" style="height:200px;"><canvas id="feedChart"></canvas></div>
+      <div id="feedChartEmpty" style="display:none;text-align:center;padding:20px;color:var(--text-tertiary);font-size:12px;">아직 수유 데이터가 없습니다</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <h3 style="font-size:13px;margin-bottom:10px;">😴 일별 수면 시간</h3>
+      <div class="chart-wrap" style="height:200px;"><canvas id="sleepChart"></canvas></div>
+      <div id="sleepChartEmpty" style="display:none;text-align:center;padding:20px;color:var(--text-tertiary);font-size:12px;">아직 수면 데이터가 없습니다</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:13px;margin-bottom:10px;">🌡️ 체온 추이</h3>
+      <div class="chart-wrap" style="height:200px;"><canvas id="tempChart"></canvas></div>
+      <div id="tempChartEmpty" style="display:none;text-align:center;padding:20px;color:var(--text-tertiary);font-size:12px;">아직 체온 데이터가 없습니다</div>
+    </div>
+  </div>
+
+  <!-- 임산부 / 태교 섹션 (생년월일이 미래일 때만 표시) -->
+  <div class="section-pane" id="section-pregnancy">
+    <div class="card" style="background:linear-gradient(135deg,#FCE7F3 0%,#FBCFE8 100%);border:1px solid #F9A8D4;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;color:#831843;letter-spacing:0.05em;">PREGNANCY · 출산 카운트다운</div>
+          <div id="pregDday" style="font-size:32px;font-weight:700;color:#831843;letter-spacing:-0.03em;margin-top:4px;">D-?</div>
+          <div id="pregWeeks" style="font-size:13px;color:#9F1239;margin-top:2px;">임신 ?주차</div>
+        </div>
+        <div id="pregBabyEmoji" style="font-size:64px;">👶</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:14px;">🤰 임신 기록</h3>
+      <button class="btn primary small" id="btnAddPregnancy">+ 기록 추가</button>
+    </div>
+    <div id="pregnancyList"></div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-bg" id="modalKid">
+  <div class="modal">
+    <h3 id="kidModalTitle">자녀 추가</h3>
+    <div class="field"><label>이름</label><input id="kidName" placeholder="예: 우진"></div>
+    <div class="field-row">
+      <div class="field"><label>생년월일</label><input type="date" id="kidBirthDate"></div>
+      <div class="field"><label>성별</label>
+        <select id="kidGender"><option value="boy">👦 남자아이</option><option value="girl">👧 여자아이</option></select>
+      </div>
+    </div>
+    <div class="field"><label>이모지 (선택)</label><input id="kidEmoji" placeholder="👦" maxlength="3"></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="kidNote" placeholder="혈액형, 알러지 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteKid" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalKid')">취소</button>
+      <button class="btn primary" id="btnSaveKid">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalEntry">
+  <div class="modal">
+    <h3 id="entryModalTitle">일기 작성</h3>
+    <div class="field"><label>날짜</label><input type="date" id="entryDate"></div>
+    <div class="field"><label>제목 (선택)</label><input id="entryTitle" placeholder="예: 처음 자전거 탄 날"></div>
+    <div class="field"><label>내용</label><textarea id="entryText" placeholder="오늘 우진이가 처음 자전거를 탔다..." rows="6"></textarea></div>
+    <div class="field photo-attach">
+      <label>📷 사진 (최대 4장)</label>
+      <div class="photo-attach-grid" id="entryPhotoGrid"></div>
+      <input type="file" id="entryPhotoInput" accept="image/*" capture="environment" multiple style="display:none;">
+    </div>
+    <div class="field"><label>태그 (선택, 쉼표로 구분)</label><input id="entryTags" placeholder="예: 첫경험, 가족나들이"></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteEntry" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalEntry')">취소</button>
+      <button class="btn primary" id="btnSaveEntry">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 사진 라이트박스 -->
+<div class="lightbox-bg" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">×</button>
+  <img id="lightboxImg" class="lightbox-img" src="" />
+</div>
+
+<!-- 기저귀 모달 -->
+<div class="modal-bg" id="modalDiaper">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="diaperModalTitle">기저귀 기록</h3>
+    <div class="field"><label>시간</label><input type="datetime-local" id="diaperDt"></div>
+    <div class="field">
+      <label>종류</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+        <label class="seg-opt"><input type="radio" name="diaperType" value="pee" checked><span>💧 소변</span></label>
+        <label class="seg-opt"><input type="radio" name="diaperType" value="poo"><span>💩 대변</span></label>
+        <label class="seg-opt"><input type="radio" name="diaperType" value="both"><span>💧💩 둘 다</span></label>
+      </div>
+    </div>
+    <div class="field" id="diaperColorField">
+      <label>대변 상태 (선택)</label>
+      <select id="diaperColor">
+        <option value="">선택 안 함</option>
+        <option value="yellow">노란색 (정상 모유)</option>
+        <option value="green">초록색</option>
+        <option value="brown">갈색 (이유식 시작 후 정상)</option>
+        <option value="dark">짙은색 (태변)</option>
+        <option value="watery">묽음/물설사</option>
+        <option value="hard">단단함</option>
+        <option value="red">붉은색 (의사 상담!)</option>
+        <option value="white">흰색 (의사 상담!)</option>
+      </select>
+    </div>
+    <div class="field"><label>메모 (선택)</label><input id="diaperMemo" placeholder="예: 양 많음, 발진 있음"></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteDiaper" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalDiaper')">취소</button>
+      <button class="btn primary" id="btnSaveDiaper">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 육아용품 추가/수정 모달 -->
+<div class="modal-bg" id="modalShopping">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="shoppingModalTitle">육아용품 추가</h3>
+    <div class="field">
+      <label>카테고리</label>
+      <select id="shoppingCategory">
+        <option value="bag">👜 출산 가방 (병원 갈 때)</option>
+        <option value="home">🏠 집 준비 (출산 전 미리)</option>
+        <option value="after">🤱 출산 후 (산모 회복)</option>
+        <option value="etc">📦 기타</option>
+      </select>
+    </div>
+    <div class="field"><label>품목</label><input id="shoppingName" placeholder="예: 산모수첩, 배냇저고리"></div>
+    <div class="field-row">
+      <div class="field"><label>수량 (선택)</label><input id="shoppingQty" placeholder="예: 2벌, 1팩"></div>
+      <div class="field">
+        <label>중요도</label>
+        <select id="shoppingPriority">
+          <option value="high">🔴 필수</option>
+          <option value="mid" selected>🟡 권장</option>
+          <option value="low">⚪ 선택</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>메모 (선택)</label><input id="shoppingMemo" placeholder="예: 브랜드, 가격, 구매처"></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteShopping" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalShopping')">취소</button>
+      <button class="btn primary" id="btnSaveShopping">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalGrowth">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="growthModalTitle">키/몸무게 기록</h3>
+    <div class="field"><label>측정일</label><input type="date" id="growthDate"></div>
+    <div class="field-row">
+      <div class="field"><label>키 (cm)</label><input id="growthHeight" placeholder="예: 110.5" inputmode="decimal"></div>
+      <div class="field"><label>몸무게 (kg)</label><input id="growthWeight" placeholder="예: 18.3" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>메모 (선택)</label><input id="growthMemo" placeholder="예: 정기검진"></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteGrowth" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalGrowth')">취소</button>
+      <button class="btn primary" id="btnSaveGrowth">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalMilestone">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="milestoneModalTitle">마일스톤 추가</h3>
+    <div class="field"><label>달성일</label><input type="date" id="milestoneDate"></div>
+    <div class="field"><label>이모지</label><input id="milestoneIcon" placeholder="🌟" maxlength="3"></div>
+    <div class="field"><label>내용</label><input id="milestoneText" placeholder="예: 처음 걸음마, 처음 옹알이"></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteMilestone" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalMilestone')">취소</button>
+      <button class="btn primary" id="btnSaveMilestone">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수유 모달 -->
+<div class="modal-bg" id="modalFeeding">
+  <div class="modal">
+    <h3 id="feedingModalTitle">🍼 수유 기록</h3>
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="feedingDate"></div>
+      <div class="field"><label>시간</label><input type="time" id="feedingTime"></div>
+    </div>
+    <div class="field">
+      <label>종류</label>
+      <select id="feedingType">
+        <option value="breast">🤱 모유</option>
+        <option value="formula">🍼 분유</option>
+        <option value="mixed">🍼🤱 혼합</option>
+        <option value="solid">🥄 이유식</option>
+      </select>
+    </div>
+    <div class="field" id="feedingSideField">
+      <label>모유 방향</label>
+      <select id="feedingSide">
+        <option value="">선택 안함</option>
+        <option value="left">왼쪽</option>
+        <option value="right">오른쪽</option>
+        <option value="both">양쪽</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>양 (mL, 선택)</label><input type="number" id="feedingAmount" placeholder="예: 120" inputmode="numeric"></div>
+      <div class="field"><label>지속시간 (분, 선택)</label><input type="number" id="feedingDuration" placeholder="예: 15" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>메모 (선택)</label><textarea id="feedingMemo" placeholder="잘 먹었음 / 토함 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteFeeding" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalFeeding')">취소</button>
+      <button class="btn primary" id="btnSaveFeeding">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수면 모달 -->
+<div class="modal-bg" id="modalSleep">
+  <div class="modal">
+    <h3 id="sleepModalTitle">😴 수면 기록</h3>
+    <div class="field-row">
+      <div class="field"><label>시작 날짜</label><input type="date" id="sleepStartDate"></div>
+      <div class="field"><label>시작 시간</label><input type="time" id="sleepStartTime"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>종료 날짜 (선택)</label><input type="date" id="sleepEndDate"></div>
+      <div class="field"><label>종료 시간 (선택)</label><input type="time" id="sleepEndTime"></div>
+    </div>
+    <p style="font-size:11.5px;color:var(--text-tertiary);margin-top:-6px;margin-bottom:12px;">💡 종료 시간은 깨고 나서 입력해도 됩니다</p>
+    <div class="field">
+      <label>종류</label>
+      <select id="sleepType">
+        <option value="auto">자동 판별 (밤 19시~새벽 6시 = 밤잠)</option>
+        <option value="nap">🌞 낮잠</option>
+        <option value="night">🌙 밤잠</option>
+      </select>
+    </div>
+    <div class="field"><label>메모 (선택)</label><textarea id="sleepMemo" placeholder="자다가 깸 / 잘 잠 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteSleep" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalSleep')">취소</button>
+      <button class="btn primary" id="btnSaveSleep">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 체온 모달 -->
+<div class="modal-bg" id="modalTemp">
+  <div class="modal">
+    <h3 id="tempModalTitle">🌡️ 체온 기록</h3>
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="tempDate"></div>
+      <div class="field"><label>시간</label><input type="time" id="tempTime"></div>
+    </div>
+    <div class="field">
+      <label>체온 (°C)</label>
+      <input type="number" id="tempValue" step="0.1" placeholder="예: 36.5" inputmode="decimal">
+      <div id="tempWarning" style="display:none;font-size:11.5px;color:#B91C1C;margin-top:6px;font-weight:500;"></div>
+    </div>
+    <div class="field">
+      <label>측정 부위</label>
+      <select id="tempLocation">
+        <option value="forehead">이마 (적외선)</option>
+        <option value="ear">귀</option>
+        <option value="armpit">겨드랑이</option>
+        <option value="rectal">항문</option>
+      </select>
+    </div>
+    <div class="field"><label>메모 (선택)</label><textarea id="tempMemo" placeholder="해열제 복용 후 / 잠들기 전 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteTemp" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalTemp')">취소</button>
+      <button class="btn primary" id="btnSaveTemp">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 약물 모달 -->
+<div class="modal-bg" id="modalMed">
+  <div class="modal">
+    <h3 id="medModalTitle">💊 약물 복용</h3>
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="medDate"></div>
+      <div class="field"><label>시간</label><input type="time" id="medTime"></div>
+    </div>
+    <div class="field"><label>약 이름</label><input id="medName" placeholder="예: 부루펜시럽, 챔프"></div>
+    <div class="field-row">
+      <div class="field"><label>용량 (선택)</label><input id="medDosage" placeholder="예: 5mL"></div>
+      <div class="field"><label>사유 (선택)</label>
+        <select id="medReason">
+          <option value="">선택 안함</option>
+          <option value="발열">발열</option>
+          <option value="감기">감기</option>
+          <option value="기침">기침</option>
+          <option value="콧물">콧물</option>
+          <option value="설사">설사</option>
+          <option value="변비">변비</option>
+          <option value="알러지">알러지</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>메모 (선택)</label><textarea id="medMemo" placeholder="처방 의사, 주의사항 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteMed" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalMed')">취소</button>
+      <button class="btn primary" id="btnSaveMed">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 목욕 모달 -->
+<div class="modal-bg" id="modalBath">
+  <div class="modal">
+    <h3 id="bathModalTitle">🛁 목욕 기록</h3>
+    <div class="field-row">
+      <div class="field"><label>날짜</label><input type="date" id="bathDate"></div>
+      <div class="field"><label>시간</label><input type="time" id="bathTime"></div>
+    </div>
+    <div class="field">
+      <label>종류</label>
+      <select id="bathType">
+        <option value="tub">🛁 욕조 목욕</option>
+        <option value="sponge">🧽 스펀지 목욕</option>
+        <option value="wipe">🧻 물수건 닦기</option>
+      </select>
+    </div>
+    <div class="field"><label>메모 (선택)</label><textarea id="bathMemo" placeholder="잘 함 / 칭얼거림 / 머리 감김 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteBath" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalBath')">취소</button>
+      <button class="btn primary" id="btnSaveBath">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 예방접종 모달 -->
+<div class="modal-bg" id="modalVaccine">
+  <div class="modal" style="max-width:500px;">
+    <h3 id="vaccineModalTitle">💉 예방접종 추가</h3>
+    <div class="field">
+      <label>백신 이름</label>
+      <input id="vaccineName" placeholder="예: BCG, B형간염 1차">
+    </div>
+    <div class="field-row">
+      <div class="field"><label>예정 날짜</label><input type="date" id="vaccineScheduledDate"></div>
+      <div class="field"><label>완료 날짜 (선택)</label><input type="date" id="vaccineCompletedDate"></div>
+    </div>
+    <div class="field"><label>병원 (선택)</label><input id="vaccineHospital" placeholder="예: ○○소아과"></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="vaccineMemo" placeholder="이상반응, 다음 접종 날짜 등"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteVaccine" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalVaccine')">취소</button>
+      <button class="btn primary" id="btnSaveVaccine">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 진료 기록 모달 -->
+<div class="modal-bg" id="modalVisit">
+  <div class="modal" style="max-width:500px;">
+    <h3 id="visitModalTitle">🏥 진료 기록</h3>
+    <div class="field"><label>날짜</label><input type="date" id="visitDate"></div>
+    <div class="field-row">
+      <div class="field"><label>병원 (선택)</label><input id="visitHospital" placeholder="예: ○○소아청소년과"></div>
+      <div class="field"><label>의사 (선택)</label><input id="visitDoctor" placeholder="예: 김○○ 원장님"></div>
+    </div>
+    <div class="field"><label>방문 사유</label><input id="visitReason" placeholder="예: 발열, 정기 검진, 예방접종"></div>
+    <div class="field"><label>진단 / 처방 (선택)</label><textarea id="visitDiagnosis" placeholder="진단명, 처방받은 약, 재방문 일정 등"></textarea></div>
+    <div class="field"><label>메모 (선택)</label><textarea id="visitMemo" placeholder="기타 특이사항"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeleteVisit" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalVisit')">취소</button>
+      <button class="btn primary" id="btnSaveVisit">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 임신 기록 모달 -->
+<div class="modal-bg" id="modalPregnancy">
+  <div class="modal" style="max-width:500px;">
+    <h3 id="pregnancyModalTitle">🤰 임신 기록</h3>
+    <div class="field"><label>날짜</label><input type="date" id="pregnancyDate"></div>
+    <div class="field">
+      <label>종류</label>
+      <select id="pregnancyKind">
+        <option value="diary">📔 태교 일기</option>
+        <option value="kick">👶 태동</option>
+        <option value="checkup">🏥 산전검사</option>
+        <option value="weight">⚖️ 체중 측정</option>
+        <option value="symptom">😵 증상</option>
+        <option value="other">📝 기타</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>임신 주차 (선택)</label><input type="number" id="pregnancyWeeks" placeholder="예: 24" inputmode="numeric"></div>
+      <div class="field"><label>체중 (kg, 선택)</label><input type="number" step="0.1" id="pregnancyWeight" placeholder="예: 60.5" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>내용</label><textarea id="pregnancyText" placeholder="오늘의 기록을 자유롭게 적어주세요" style="min-height:80px;"></textarea></div>
+    <div class="actions">
+      <button class="btn danger" id="btnDeletePregnancy" style="margin-right:auto;display:none;">삭제</button>
+      <button class="btn" onclick="closeModal('modalPregnancy')">취소</button>
+      <button class="btn primary" id="btnSavePregnancy">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 확인 모달 -->
+<div class="modal-bg" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="confirmTitle" style="margin-bottom:8px;">확인</h3>
+    <p id="confirmMessage" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;"></p>
+    <div class="actions">
+      <button class="btn" id="btnConfirmCancel">취소</button>
+      <button class="btn danger" id="btnConfirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'lifeos-kids-v1';
+let state = {
+  kids: [], entries: [], growth: [], milestones: [],
+  feedings: [],      // 수유
+  sleeps: [],        // 수면
+  temperatures: [],  // 체온
+  medications: [],   // 약물
+  baths: [],         // 목욕
+  diapers: [],       // 기저귀: {id, kidId, datetime, type:'pee'|'poo'|'both', color?, memo}
+  shopping: [],      // 육아용품: {id, kidId, category, name, qty, priority, checked, memo, addedAt}
+  vaccinations: [],  // 예방접종: {id, kidId, vaccineId, scheduledDate, completedDate, hospital, memo}
+  visits: [],        // 진료: {id, kidId, date, hospital, doctor, reason, diagnosis, memo}
+  pregnancy: [],     // 임신/태교: {id, kidId, date, kind: 'kick'|'checkup'|'diary'|'photo', text, weeks, weight, memo}
+  currentKidId: null, currentSection: 'diary',
+  careSubTab: 'today',
+  careDate: null,
+  editingKidId: null, editingEntryId: null, editingGrowthId: null, editingMilestoneId: null,
+  editingFeedingId: null, editingSleepId: null, editingTempId: null, editingMedId: null, editingBathId: null,
+  editingDiaperId: null,
+  editingShoppingId: null,
+  editingVaccinationId: null, editingVisitId: null, editingPregnancyId: null,
+  // 일기 작성 시 첨부 사진 임시 저장
+  pendingEntryPhotos: [],
+};
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let toastTimer;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2500); }
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+// 자체 confirm 모달 (모바일 confirm() 호환성 문제 해결)
+let _confirmCallback = null;
+function confirmModal(title, message, onConfirm, okLabel = '확인', okClass = 'btn danger') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  const okBtn = document.getElementById('btnConfirmOk');
+  okBtn.textContent = okLabel;
+  okBtn.className = okClass;
+  _confirmCallback = onConfirm;
+  showModal('modalConfirm');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const okBtn = document.getElementById('btnConfirmOk');
+  const cancelBtn = document.getElementById('btnConfirmCancel');
+  if (okBtn) okBtn.addEventListener('click', () => {
+    closeModal('modalConfirm');
+    if (_confirmCallback) _confirmCallback();
+    _confirmCallback = null;
+  });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    closeModal('modalConfirm');
+    _confirmCallback = null;
+  });
+});
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    kids: state.kids, entries: state.entries, growth: state.growth, milestones: state.milestones,
+    feedings: state.feedings, sleeps: state.sleeps, temperatures: state.temperatures,
+    medications: state.medications, baths: state.baths, diapers: state.diapers,
+    shopping: state.shopping,
+    vaccinations: state.vaccinations, visits: state.visits, pregnancy: state.pregnancy,
+  }));
+}
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const p = JSON.parse(raw);
+    if (p.kids) state.kids = p.kids;
+    if (p.entries) state.entries = p.entries;
+    if (p.growth) state.growth = p.growth;
+    if (p.milestones) state.milestones = p.milestones;
+    if (p.feedings) state.feedings = p.feedings;
+    if (p.sleeps) state.sleeps = p.sleeps;
+    if (p.temperatures) state.temperatures = p.temperatures;
+    if (p.medications) state.medications = p.medications;
+    if (p.baths) state.baths = p.baths;
+    if (p.diapers) state.diapers = p.diapers;
+    if (p.shopping) state.shopping = p.shopping;
+    if (p.vaccinations) state.vaccinations = p.vaccinations;
+    if (p.visits) state.visits = p.visits;
+    if (p.pregnancy) state.pregnancy = p.pregnancy;
+  } catch(e){}
+}
+
+function isUnborn(birthDate) {
+  if (!birthDate) return true;  // 생일 정보 없으면 출생 전으로 처리 (신생아 케어 숨김)
+  const b = new Date(birthDate);
+  const now = new Date();
+  return b > now;
+}
+function daysTilBirth(birthDate) {
+  if (!birthDate) return 0;
+  const b = new Date(birthDate);
+  const now = new Date();
+  return Math.ceil((b - now) / 86400000);
+}
+function calcAge(birthDate) {
+  if (!birthDate) return '-';
+  const b = new Date(birthDate);
+  const now = new Date();
+  if (b > now) {
+    const days = Math.ceil((b - now) / 86400000);
+    return `D-${days}`;
+  }
+  let years = now.getFullYear() - b.getFullYear();
+  let months = now.getMonth() - b.getMonth();
+  if (now.getDate() < b.getDate()) months--;
+  if (months < 0) { years--; months += 12; }
+  if (years < 1) return `${months}개월`;
+  return `${years}세 ${months}개월`;
+}
+function getKid() { return state.kids.find(k => k.id === state.currentKidId); }
+function kidEntries(kidId) { return state.entries.filter(e => e.kidId === kidId); }
+function kidGrowth(kidId) { return state.growth.filter(g => g.kidId === kidId).sort((a,b) => a.date.localeCompare(b.date)); }
+function kidMilestones(kidId) { return state.milestones.filter(m => m.kidId === kidId).sort((a,b) => b.date.localeCompare(a.date)); }
+
+function renderAll() {
+  if (state.kids.length === 0) { document.getElementById('noKidView').style.display = ''; document.getElementById('kidView').style.display = 'none'; return; }
+  if (!state.currentKidId || !state.kids.find(k => k.id === state.currentKidId)) state.currentKidId = state.kids[0].id;
+  document.getElementById('noKidView').style.display = 'none';
+  document.getElementById('kidView').style.display = '';
+  renderKidTabs(); renderSectionTabs(); renderBanner(); renderSectionContent();
+}
+
+// 임신 중인지에 따라 섹션 탭 동적 표시
+function renderSectionTabs() {
+  const k = getKid(); if (!k) return;
+  const unborn = isUnborn(k.birthDate);
+
+  // 임신 중일 때: 🤰 임신 기록 탭이 가장 앞에 추가됨
+  // 출생 후: 신생아 케어 / 예방접종 / 진료기록 / 패턴 차트 모두 표시
+  const tabs = document.querySelectorAll('.section-tab');
+  tabs.forEach(t => {
+    const sec = t.dataset.section;
+    if (sec === 'pregnancy') {
+      t.style.display = unborn ? '' : 'none';
+    } else if (['care','vaccine','visit','chart'].includes(sec)) {
+      t.style.display = unborn ? 'none' : '';
+    }
+  });
+
+  // 임신 중인 경우, 임신 탭이 없으면 추가
+  let pregTab = document.querySelector('.section-tab[data-section="pregnancy"]');
+  if (unborn && !pregTab) {
+    const tabBar = document.querySelector('.section-tabs');
+    pregTab = document.createElement('button');
+    pregTab.className = 'section-tab';
+    pregTab.dataset.section = 'pregnancy';
+    pregTab.textContent = '🤰 임신 기록';
+    tabBar.insertBefore(pregTab, tabBar.firstChild);
+    pregTab.addEventListener('click', () => activateSection('pregnancy'));
+  }
+
+  // 임신 중인데 현재 섹션이 출산 후 전용이면 임신 기록으로 전환
+  if (unborn && ['care','vaccine','visit','chart'].includes(state.currentSection)) {
+    state.currentSection = 'pregnancy';
+  }
+  if (!unborn && state.currentSection === 'pregnancy') {
+    state.currentSection = 'diary';
+  }
+
+  // 활성 탭 표시
+  document.querySelectorAll('.section-tab').forEach(x => x.classList.toggle('active', x.dataset.section === state.currentSection));
+  document.querySelectorAll('.section-pane').forEach(p => p.classList.toggle('active', p.id === 'section-' + state.currentSection));
+}
+
+function activateSection(section) {
+  state.currentSection = section;
+  document.querySelectorAll('.section-tab').forEach(x => x.classList.toggle('active', x.dataset.section === section));
+  document.querySelectorAll('.section-pane').forEach(p => p.classList.toggle('active', p.id === 'section-' + section));
+  renderSectionContent();
+}
+
+function renderKidTabs() {
+  const wrap = document.getElementById('kidTabs');
+  const tabs = state.kids.map(k => `<div class="kid-tab ${k.id === state.currentKidId ? 'active' : ''}" data-kid-id="${k.id}"><span style="font-size:18px;">${k.emoji || (k.gender === 'girl' ? '👧' : '👦')}</span><span>${escapeHtml(k.name)}</span><span class="age">${calcAge(k.birthDate)}</span></div>`).join('');
+  wrap.innerHTML = tabs + `<div class="kid-tab add" id="kidTabAdd">+ 자녀</div>`;
+  wrap.querySelectorAll('.kid-tab[data-kid-id]').forEach(el => el.addEventListener('click', () => { state.currentKidId = el.dataset.kidId; renderAll(); }));
+  document.getElementById('kidTabAdd').addEventListener('click', () => openKidModal());
+}
+
+function renderBanner() {
+  const k = getKid(); if (!k) return;
+  const unborn = isUnborn(k.birthDate);
+  document.getElementById('kidAge').textContent = calcAge(k.birthDate);
+  if (unborn) {
+    document.getElementById('kidBirth').textContent = `출산예정: ${k.birthDate}`;
+  } else {
+    document.getElementById('kidBirth').textContent = k.birthDate ? `생일: ${k.birthDate}` : '생일 정보 없음';
+  }
+  const growth = kidGrowth(k.id);
+  const latest = growth[growth.length - 1];
+  if (latest) {
+    document.getElementById('kidLatest').textContent = `${latest.height || '-'} cm · ${latest.weight || '-'} kg`;
+    document.getElementById('kidLatestDate').textContent = `측정일 ${latest.date}`;
+  } else {
+    document.getElementById('kidLatest').textContent = unborn ? '-' : '-';
+    document.getElementById('kidLatestDate').textContent = unborn ? '출산 후 기록 시작' : '아직 측정 기록 없음';
+  }
+  const entries = kidEntries(k.id);
+  document.getElementById('kidEntryCount').textContent = `${entries.length}건`;
+  if (entries.length > 0) {
+    const sorted = entries.slice().sort((a,b) => b.date.localeCompare(a.date));
+    const daysAgo = Math.floor((new Date() - new Date(sorted[0].date)) / (1000*60*60*24));
+    document.getElementById('kidLastEntry').textContent = daysAgo === 0 ? '오늘' : `${daysAgo}일 전`;
+  } else {
+    document.getElementById('kidLastEntry').textContent = '-';
+  }
+  document.getElementById('kidMilestoneCount').textContent = `${kidMilestones(k.id).length}개`;
+}
+
+function renderSectionContent() {
+  if (state.currentSection === 'diary') renderDiary();
+  else if (state.currentSection === 'growth') renderGrowth();
+  else if (state.currentSection === 'care') renderCare();
+  else if (state.currentSection === 'vaccine') renderVaccine();
+  else if (state.currentSection === 'visit') renderVisit();
+  else if (state.currentSection === 'chart') renderChart();
+  else if (state.currentSection === 'pregnancy') renderPregnancy();
+  else if (state.currentSection === 'milestone') { renderAutoMilestone(); renderMilestoneList(); }
+  else if (state.currentSection === 'shopping') renderShopping();
+  else if (state.currentSection === 'info') renderInfo();
+}
+
+document.querySelectorAll('.section-tab').forEach(b => {
+  b.addEventListener('click', () => {
+    activateSection(b.dataset.section);
+    renderSectionContent();
+  });
+});
+
+function renderDiary() {
+  const k = getKid(); if (!k) return;
+  const entries = kidEntries(k.id).slice().sort((a,b) => b.date.localeCompare(a.date));
+  const list = document.getElementById('entriesList');
+  if (entries.length === 0) { list.innerHTML = `<div class="empty"><div class="big">📔</div><div class="label">아직 일기가 없어요</div><div class="sub">첫 기록을 시작해보세요</div></div>`; return; }
+  list.innerHTML = entries.map(e => {
+    const tags = (e.tags || []).map(t => `<span class="entry-tag">#${escapeHtml(t)}</span>`).join('');
+    const photos = (e.photos || []).map(p => `<div class="entry-photo" onclick="openLightbox('${p}')"><img src="${p}" alt="사진"></div>`).join('');
+    const photosHtml = photos ? `<div class="entry-photos">${photos}</div>` : '';
+    return `<div class="entry-card"><div class="entry-head"><div><div class="entry-date">${e.date}</div>${e.title ? `<div class="entry-title">${escapeHtml(e.title)}</div>` : ''}</div><button class="btn small" onclick="editEntry('${e.id}')">수정</button></div>${e.text ? `<div class="entry-text">${escapeHtml(e.text)}</div>` : ''}${photosHtml}${tags ? `<div class="entry-tags">${tags}</div>` : ''}</div>`;
+  }).join('');
+}
+
+document.getElementById('btnAddEntry').addEventListener('click', () => {
+  state.editingEntryId = null;
+  state.pendingEntryPhotos = [];
+  document.getElementById('entryModalTitle').textContent = '일기 작성';
+  document.getElementById('entryDate').value = isoDate(new Date());
+  document.getElementById('entryTitle').value = '';
+  document.getElementById('entryText').value = '';
+  document.getElementById('entryTags').value = '';
+  document.getElementById('btnDeleteEntry').style.display = 'none';
+  renderEntryPhotoGrid();
+  showModal('modalEntry');
+});
+
+document.getElementById('btnSaveEntry').addEventListener('click', () => {
+  const date = document.getElementById('entryDate').value;
+  const title = document.getElementById('entryTitle').value.trim();
+  const text = document.getElementById('entryText').value.trim();
+  const tagsStr = document.getElementById('entryTags').value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(s => s.trim().replace(/^#/,'')).filter(Boolean) : [];
+  if (!date) return toast('날짜를 선택해주세요');
+  if (!text && state.pendingEntryPhotos.length === 0) return toast('내용 또는 사진을 입력해주세요');
+  const photos = [...state.pendingEntryPhotos];
+  if (state.editingEntryId) {
+    const e = state.entries.find(x => x.id === state.editingEntryId);
+    if (e) Object.assign(e, { date, title, text, tags, photos });
+  } else {
+    state.entries.push({ id: uid(), kidId: state.currentKidId, date, title, text, tags, photos });
+  }
+  state.pendingEntryPhotos = [];
+  save(); renderAll(); closeModal('modalEntry');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteEntry').addEventListener('click', () => {
+  if (!state.editingEntryId) return;
+  confirmModal('일기 삭제', '이 일기를 삭제하시겠어요?', () => {
+    state.entries = state.entries.filter(e => e.id !== state.editingEntryId);
+    save(); renderAll(); closeModal('modalEntry');
+    toast('삭제되었습니다');
+  }, '삭제');
+});
+
+window.editEntry = (id) => {
+  const e = state.entries.find(x => x.id === id); if (!e) return;
+  state.editingEntryId = id;
+  state.pendingEntryPhotos = [...(e.photos || [])];
+  document.getElementById('entryModalTitle').textContent = '일기 수정';
+  document.getElementById('entryDate').value = e.date;
+  document.getElementById('entryTitle').value = e.title || '';
+  document.getElementById('entryText').value = e.text;
+  document.getElementById('entryTags').value = (e.tags || []).join(', ');
+  document.getElementById('btnDeleteEntry').style.display = '';
+  renderEntryPhotoGrid();
+  showModal('modalEntry');
+};
+
+// ============= 사진 업로드 =============
+function resizeImageToBase64(file, maxSize = 800, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderEntryPhotoGrid() {
+  const grid = document.getElementById('entryPhotoGrid');
+  const photos = state.pendingEntryPhotos || [];
+  const maxPhotos = 4;
+
+  let html = photos.map((p, i) => `
+    <div class="photo-attach-item">
+      <img src="${p}" alt="사진 ${i+1}">
+      <button class="remove" data-idx="${i}" type="button">×</button>
+    </div>
+  `).join('');
+
+  if (photos.length < maxPhotos) {
+    html += `<button class="photo-attach-add" type="button" id="entryAddPhotoBtn">
+      <span class="icon">📷</span><span>추가</span>
+    </button>`;
+  }
+
+  grid.innerHTML = html;
+
+  // 삭제 버튼
+  grid.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      state.pendingEntryPhotos.splice(idx, 1);
+      renderEntryPhotoGrid();
+    });
+  });
+
+  // 추가 버튼
+  const addBtn = document.getElementById('entryAddPhotoBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      document.getElementById('entryPhotoInput').click();
+    });
+  }
+}
+
+document.getElementById('entryPhotoInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+  e.target.value = '';
+
+  const maxPhotos = 4;
+  const remaining = maxPhotos - state.pendingEntryPhotos.length;
+  const toProcess = files.slice(0, remaining);
+
+  if (files.length > remaining) {
+    toast(`최대 ${maxPhotos}장까지 가능. ${remaining}장만 추가됩니다`);
+  }
+
+  for (const file of toProcess) {
+    if (file.size > 15 * 1024 * 1024) {
+      toast(`사진이 너무 커요 (${file.name})`);
+      continue;
+    }
+    try {
+      const base64 = await resizeImageToBase64(file);
+      state.pendingEntryPhotos.push(base64);
+    } catch(err) {
+      toast('사진 처리 실패');
+    }
+  }
+  renderEntryPhotoGrid();
+});
+
+// 사진 라이트박스
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  document.getElementById('lightboxImg').src = '';
+}
+window.openLightbox = openLightbox;
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+document.getElementById('lightbox').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeLightbox();
+});
+
+let growthChartInstance;
+function renderGrowth() {
+  const k = getKid(); if (!k) return;
+  const records = kidGrowth(k.id);
+  const latest = records[records.length - 1];
+  const prev = records[records.length - 2];
+  if (latest) {
+    document.getElementById('latestHeight').textContent = latest.height ? `${latest.height} cm` : '-';
+    document.getElementById('latestWeight').textContent = latest.weight ? `${latest.weight} kg` : '-';
+    if (prev) {
+      if (latest.height && prev.height) {
+        const d = (latest.height - prev.height).toFixed(1);
+        document.getElementById('heightTrend').innerHTML = `직전 대비 <strong style="color:${d>=0?'#22C55E':'#EF4444'};">${d>=0?'+':''}${d} cm</strong>`;
+      } else { document.getElementById('heightTrend').textContent = '-'; }
+      if (latest.weight && prev.weight) {
+        const d = (latest.weight - prev.weight).toFixed(1);
+        document.getElementById('weightTrend').innerHTML = `직전 대비 <strong style="color:${d>=0?'#22C55E':'#EF4444'};">${d>=0?'+':''}${d} kg</strong>`;
+      } else { document.getElementById('weightTrend').textContent = '-'; }
+    } else {
+      document.getElementById('heightTrend').textContent = '첫 기록';
+      document.getElementById('weightTrend').textContent = '첫 기록';
+    }
+  } else {
+    document.getElementById('latestHeight').textContent = '-';
+    document.getElementById('latestWeight').textContent = '-';
+    document.getElementById('heightTrend').textContent = '아직 기록 없음';
+    document.getElementById('weightTrend').textContent = '아직 기록 없음';
+  }
+  const chartEl = document.getElementById('growthChart');
+  const emptyEl = document.getElementById('growthEmpty');
+  if (records.length === 0) {
+    if (growthChartInstance) { growthChartInstance.destroy(); growthChartInstance = null; }
+    chartEl.style.display = 'none'; emptyEl.style.display = '';
+  } else {
+    chartEl.style.display = ''; emptyEl.style.display = 'none';
+    if (growthChartInstance) growthChartInstance.destroy();
+    growthChartInstance = new Chart(chartEl, {
+      type: 'line',
+      data: {
+        labels: records.map(r => r.date),
+        datasets: [
+          { label: '키 (cm)', data: records.map(r => r.height || null), borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.15)', yAxisID: 'y', tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2, spanGaps: true },
+          { label: '몸무게 (kg)', data: records.map(r => r.weight || null), borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)', yAxisID: 'y1', tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2, spanGaps: true }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8 } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748B' } },
+          y: { type: 'linear', position: 'left', title: { display: true, text: '키 (cm)', font: { size: 11 } }, grid: { color: '#F1F3F7' }, ticks: { font: { size: 11 }, color: '#22C55E' } },
+          y1: { type: 'linear', position: 'right', title: { display: true, text: '몸무게 (kg)', font: { size: 11 } }, grid: { drawOnChartArea: false }, ticks: { font: { size: 11 }, color: '#F59E0B' } }
+        }
+      }
+    });
+  }
+  const listEl = document.getElementById('growthList');
+  if (records.length === 0) {
+    listEl.innerHTML = `<div class="empty" style="padding:20px;"><div style="font-size:11.5px;">아직 기록이 없어요</div></div>`;
+  } else {
+    listEl.innerHTML = records.slice().reverse().map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px;"><div><div style="font-weight:500;">${r.date}</div>${r.memo ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">${escapeHtml(r.memo)}</div>` : ''}</div><div style="display:flex;align-items:center;gap:14px;"><span class="num">${r.height ? r.height + ' cm' : '-'} · ${r.weight ? r.weight + ' kg' : '-'}</span><button class="btn small" onclick="editGrowth('${r.id}')">수정</button></div></div>`).join('');
+  }
+}
+
+document.getElementById('btnAddGrowth').addEventListener('click', () => {
+  state.editingGrowthId = null;
+  document.getElementById('growthModalTitle').textContent = '키/몸무게 기록';
+  document.getElementById('growthDate').value = isoDate(new Date());
+  document.getElementById('growthHeight').value = '';
+  document.getElementById('growthWeight').value = '';
+  document.getElementById('growthMemo').value = '';
+  document.getElementById('btnDeleteGrowth').style.display = 'none';
+  showModal('modalGrowth');
+});
+
+document.getElementById('btnSaveGrowth').addEventListener('click', () => {
+  const date = document.getElementById('growthDate').value;
+  const height = parseFloat(document.getElementById('growthHeight').value) || null;
+  const weight = parseFloat(document.getElementById('growthWeight').value) || null;
+  const memo = document.getElementById('growthMemo').value.trim();
+  if (!date) return toast('측정일을 선택해주세요');
+  if (!height && !weight) return toast('키 또는 몸무게 중 하나는 입력해주세요');
+  if (state.editingGrowthId) {
+    const r = state.growth.find(x => x.id === state.editingGrowthId);
+    if (r) Object.assign(r, { date, height, weight, memo });
+  } else {
+    state.growth.push({ id: uid(), kidId: state.currentKidId, date, height, weight, memo });
+  }
+  save(); renderAll(); closeModal('modalGrowth');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteGrowth').addEventListener('click', () => {
+  if (!state.editingGrowthId) return;
+  state.growth = state.growth.filter(g => g.id !== state.editingGrowthId);
+  save(); renderAll(); closeModal('modalGrowth');
+  toast('삭제되었습니다');
+});
+
+window.editGrowth = (id) => {
+  const r = state.growth.find(x => x.id === id); if (!r) return;
+  state.editingGrowthId = id;
+  document.getElementById('growthModalTitle').textContent = '키/몸무게 수정';
+  document.getElementById('growthDate').value = r.date;
+  document.getElementById('growthHeight').value = r.height || '';
+  document.getElementById('growthWeight').value = r.weight || '';
+  document.getElementById('growthMemo').value = r.memo || '';
+  document.getElementById('btnDeleteGrowth').style.display = '';
+  showModal('modalGrowth');
+};
+
+// ============= 마일스톤 자동 추천 (한국 영유아 발달 표준 기반) =============
+const MILESTONE_DB = {
+  0: [
+    { icon: '👁️', text: '큰 소리에 반응' },
+    { icon: '🥛', text: '엄마 냄새/목소리 인식' },
+  ],
+  1: [
+    { icon: '😀', text: '사람 얼굴에 반응' },
+    { icon: '🗣️', text: '울음 외 다양한 소리 내기' },
+  ],
+  2: [
+    { icon: '😊', text: '사회적 미소 시작' },
+    { icon: '👀', text: '눈으로 사물 따라보기' },
+  ],
+  3: [
+    { icon: '💪', text: '목 가누기' },
+    { icon: '🤝', text: '두 손 모으기' },
+    { icon: '😄', text: '소리내며 웃기' },
+  ],
+  4: [
+    { icon: '🔄', text: '뒤집기 시작' },
+    { icon: '🤲', text: '장난감 잡기' },
+  ],
+  5: [
+    { icon: '🤸', text: '뒤집기 완성 (양방향)' },
+    { icon: '👋', text: '손 보고 흔들기' },
+  ],
+  6: [
+    { icon: '🪑', text: '잠깐 앉아 있기' },
+    { icon: '🥄', text: '이유식 시작' },
+    { icon: '🦷', text: '첫 이가 나오기 시작' },
+  ],
+  7: [
+    { icon: '🪑', text: '혼자 앉기' },
+    { icon: '🤲', text: '손에서 손으로 옮기기' },
+  ],
+  8: [
+    { icon: '🐛', text: '기기 시작' },
+    { icon: '🙈', text: '까꿍 놀이 좋아함' },
+    { icon: '👶', text: '낯가림 시작' },
+  ],
+  9: [
+    { icon: '🧍', text: '잡고 서기' },
+    { icon: '👉', text: '손가락으로 가리키기' },
+  ],
+  10: [
+    { icon: '👏', text: '박수치기' },
+    { icon: '🗣️', text: '단어처럼 옹알이' },
+  ],
+  11: [
+    { icon: '🚶', text: '잡고 걷기' },
+    { icon: '👋', text: '바이바이 손짓' },
+  ],
+  12: [
+    { icon: '👣', text: '첫 걸음마' },
+    { icon: '🗣️', text: '첫 단어 (마마/파파)' },
+    { icon: '🎂', text: '첫 생일 / 돌' },
+  ],
+  15: [
+    { icon: '🚶', text: '혼자 걷기 능숙' },
+    { icon: '🗣️', text: '단어 5~10개 사용' },
+    { icon: '🥄', text: '스푼 사용 시도' },
+  ],
+  18: [
+    { icon: '🏃', text: '뛰기 시작' },
+    { icon: '🗣️', text: '두 단어 문장 시도' },
+    { icon: '✏️', text: '낙서하기' },
+  ],
+  21: [
+    { icon: '🧱', text: '블록 쌓기' },
+    { icon: '🗣️', text: '50개 이상 단어' },
+  ],
+  24: [
+    { icon: '🏃', text: '뛰기 능숙' },
+    { icon: '🗣️', text: '두 단어 문장 능숙' },
+    { icon: '🎂', text: '두 번째 생일' },
+  ],
+  30: [
+    { icon: '🚶', text: '계단 오르기' },
+    { icon: '🗣️', text: '짧은 문장 말하기' },
+  ],
+  36: [
+    { icon: '🚲', text: '세발자전거 타기' },
+    { icon: '🗣️', text: '세 단어 문장' },
+    { icon: '🎂', text: '세 번째 생일' },
+  ],
+  48: [
+    { icon: '🦘', text: '한 발로 뛰기' },
+    { icon: '✂️', text: '가위 사용' },
+    { icon: '👕', text: '혼자 옷 입기' },
+  ],
+  60: [
+    { icon: '✏️', text: '이름 쓰기 시도' },
+    { icon: '🎨', text: '사람 그리기' },
+    { icon: '🎂', text: '다섯 번째 생일' },
+  ],
+};
+
+function calcAgeMonths(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return null;
+  const now = new Date();
+  if (now < birth) return null; // 출생 전
+  let months = (now.getFullYear() - birth.getFullYear()) * 12;
+  months += now.getMonth() - birth.getMonth();
+  if (now.getDate() < birth.getDate()) months--;
+  return Math.max(0, months);
+}
+
+function getMilestoneRecommendations(birthDate, kidId) {
+  const ageMonths = calcAgeMonths(birthDate);
+  if (ageMonths === null) return { ageMonths: null, items: [] };
+
+  // 현재 개월수 ±1, 그리고 가까운 주요 마일스톤
+  const candidateMonths = new Set();
+  for (let m = Math.max(0, ageMonths - 1); m <= ageMonths + 1; m++) {
+    candidateMonths.add(m);
+  }
+
+  // 주요 마일스톤 월에서 가까운 것도 포함
+  const keyMonths = Object.keys(MILESTONE_DB).map(Number).sort((a, b) => a - b);
+  for (const km of keyMonths) {
+    if (Math.abs(km - ageMonths) <= 2 && km <= ageMonths + 2) {
+      candidateMonths.add(km);
+    }
+  }
+
+  // 이미 등록된 마일스톤 텍스트 (중복 방지)
+  const existingTexts = state.milestones
+    .filter(m => m.kidId === kidId)
+    .map(m => m.text);
+
+  const items = [];
+  Array.from(candidateMonths).sort((a, b) => a - b).forEach(m => {
+    if (!MILESTONE_DB[m]) return;
+    MILESTONE_DB[m].forEach(item => {
+      if (!existingTexts.includes(item.text)) {
+        items.push({ ...item, ageMonth: m });
+      }
+    });
+  });
+
+  return { ageMonths, items: items.slice(0, 8) };
+}
+
+function renderAutoMilestone() {
+  const k = getKid();
+  const area = document.getElementById('autoMilestoneArea');
+  if (!area || !k) { if (area) area.innerHTML = ''; return; }
+
+  // 출생 전이거나 birthDate 없으면 표시 안 함
+  if (!k.birthDate || isUnborn(k.birthDate)) {
+    area.innerHTML = '';
+    return;
+  }
+
+  const { ageMonths, items } = getMilestoneRecommendations(k.birthDate, k.id);
+  if (ageMonths === null || items.length === 0) {
+    area.innerHTML = '';
+    return;
+  }
+
+  const ageText = ageMonths < 12 ? `${ageMonths}개월` : `${Math.floor(ageMonths/12)}살 ${ageMonths%12}개월`;
+
+  area.innerHTML = `
+    <div class="auto-milestone-card">
+      <div class="header">🌟 ${escapeHtml(k.name || '')} (${ageText})에 자주 보이는 발달</div>
+      <div class="sub">달성한 항목을 클릭하면 마일스톤으로 자동 등록돼요</div>
+      <div class="auto-milestone-grid">
+        ${items.map((it, i) => `
+          <button class="auto-milestone-btn" data-idx="${i}" data-icon="${it.icon}" data-text="${escapeHtml(it.text)}" data-age="${it.ageMonth}">
+            <span class="ic">${it.icon}</span>
+            <span class="tx">${escapeHtml(it.text)}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // 클릭 핸들러
+  area.querySelectorAll('.auto-milestone-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const icon = btn.dataset.icon;
+      const text = btn.dataset.text;
+      const ageMonth = parseInt(btn.dataset.age);
+
+      confirmModal('마일스톤 등록', `"${text}" 을(를) 오늘 날짜로 마일스톤에 추가할까요?`, () => {
+        state.milestones.push({
+          id: uid(),
+          kidId: state.currentKidId,
+          date: isoDate(new Date()),
+          icon: icon,
+          text: text,
+          _auto: true,
+        });
+        save(); renderAll();
+        toast('🌟 마일스톤이 추가되었어요!');
+      }, '추가', 'btn primary');
+    });
+  });
+}
+
+function renderMilestoneList() {
+  const k = getKid(); if (!k) return;
+  const ms = kidMilestones(k.id);
+  const list = document.getElementById('milestoneList');
+  if (ms.length === 0) { list.innerHTML = `<div class="empty"><div class="big">🌟</div><div class="label">아직 마일스톤이 없어요</div><div class="sub">첫 걸음마, 첫 옹알이 등 특별한 순간을 기록해보세요</div></div>`; return; }
+  list.innerHTML = ms.map(m => {
+    const autoBadge = m._auto ? '<span style="font-size:10px;background:#ECFDF5;color:#065F46;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:500;">자동</span>' : '';
+    return `<div class="milestone-item"><div class="milestone-icon">${m.icon || '🌟'}</div><div class="milestone-content"><div class="milestone-date">${m.date}${autoBadge}</div><div class="milestone-text">${escapeHtml(m.text)}</div></div><div><button class="btn small" onclick="editMilestone('${m.id}')">수정</button></div></div>`;
+  }).join('');
+}
+
+// ============= 🛒 육아용품 체크리스트 =============
+const SHOPPING_CATS = {
+  bag: { icon: '👜', label: '출산 가방', desc: '병원 갈 때' },
+  home: { icon: '🏠', label: '집 준비', desc: '출산 전 미리' },
+  after: { icon: '🤱', label: '출산 후', desc: '산모 회복' },
+  etc: { icon: '📦', label: '기타', desc: '' },
+};
+
+// 한국 출산 표준 체크리스트 (60+ 항목)
+const SHOPPING_PRESET = [
+  // 출산 가방 - 산모 (필수)
+  { category: 'bag', name: '산모수첩', qty: '1', priority: 'high' },
+  { category: 'bag', name: '신분증/보험증/진료카드', qty: '', priority: 'high' },
+  { category: 'bag', name: '산모 패드 (대형)', qty: '1팩', priority: 'high' },
+  { category: 'bag', name: '산모 팬티', qty: '5장', priority: 'high' },
+  { category: 'bag', name: '수유 브라', qty: '2-3개', priority: 'high' },
+  { category: 'bag', name: '모유 수유 패드', qty: '1박스', priority: 'high' },
+  { category: 'bag', name: '편한 슬리퍼', qty: '1', priority: 'high' },
+  { category: 'bag', name: '세면도구 (칫솔/치약/샴푸)', qty: '세트', priority: 'mid' },
+  { category: 'bag', name: '수건', qty: '대2/소2', priority: 'mid' },
+  { category: 'bag', name: '충전기/보조배터리', qty: '', priority: 'high' },
+  { category: 'bag', name: '카디건/후드 (회복실용)', qty: '1', priority: 'mid' },
+  { category: 'bag', name: '양말', qty: '3족', priority: 'mid' },
+  { category: 'bag', name: '머리끈/빗', qty: '', priority: 'low' },
+  { category: 'bag', name: '도시락통/텀블러', qty: '', priority: 'low' },
+  // 출산 가방 - 아기
+  { category: 'bag', name: '아기 배냇저고리', qty: '2벌', priority: 'high' },
+  { category: 'bag', name: '아기 손/발싸개', qty: '2세트', priority: 'high' },
+  { category: 'bag', name: '아기 속싸개', qty: '2장', priority: 'high' },
+  { category: 'bag', name: '아기 겉싸개', qty: '1장', priority: 'high' },
+  { category: 'bag', name: '아기 모자', qty: '1', priority: 'mid' },
+  { category: 'bag', name: '아기 손수건/거즈', qty: '10장', priority: 'high' },
+  { category: 'bag', name: '신생아 기저귀', qty: '1팩', priority: 'high' },
+  { category: 'bag', name: '물티슈', qty: '2팩', priority: 'high' },
+
+  // 집 준비
+  { category: 'home', name: '카시트 (퇴원시 필수)', qty: '1', priority: 'high' },
+  { category: 'home', name: '아기침대 / 범퍼침대', qty: '1', priority: 'high' },
+  { category: 'home', name: '신생아 의류 (배냇저고리)', qty: '5-7벌', priority: 'high' },
+  { category: 'home', name: '우주복', qty: '3벌', priority: 'high' },
+  { category: 'home', name: '손싸개/발싸개', qty: '5세트', priority: 'high' },
+  { category: 'home', name: '신생아 기저귀', qty: '대량', priority: 'high' },
+  { category: 'home', name: '물티슈', qty: '대량', priority: 'high' },
+  { category: 'home', name: '젖병', qty: '3-5개', priority: 'high' },
+  { category: 'home', name: '젖병 솔', qty: '1', priority: 'high' },
+  { category: 'home', name: '젖병 소독기', qty: '1', priority: 'mid' },
+  { category: 'home', name: '분유 (대비용)', qty: '1통', priority: 'mid' },
+  { category: 'home', name: '분유 포트', qty: '1', priority: 'mid' },
+  { category: 'home', name: '수유 쿠션', qty: '1', priority: 'high' },
+  { category: 'home', name: '신생아 욕조', qty: '1', priority: 'high' },
+  { category: 'home', name: '욕조 받침대 / 머메이드', qty: '1', priority: 'mid' },
+  { category: 'home', name: '아기 욕실 용품', qty: '세트', priority: 'high' },
+  { category: 'home', name: '체온계 (귀)', qty: '1', priority: 'high' },
+  { category: 'home', name: '손톱 가위/줄', qty: '1', priority: 'mid' },
+  { category: 'home', name: '아기 면봉', qty: '1박스', priority: 'mid' },
+  { category: 'home', name: '가습기', qty: '1', priority: 'high' },
+  { category: 'home', name: '공기청정기', qty: '1', priority: 'mid' },
+  { category: 'home', name: '백색소음기 / 모빌', qty: '', priority: 'low' },
+  { category: 'home', name: '모로반사 방지 쿠션', qty: '1', priority: 'mid' },
+  { category: 'home', name: '아기띠', qty: '1', priority: 'mid' },
+  { category: 'home', name: '유모차', qty: '1', priority: 'mid' },
+
+  // 출산 후 - 산모 회복
+  { category: 'after', name: '산모 보호대 / 복대', qty: '1', priority: 'high' },
+  { category: 'after', name: '회음부 패드', qty: '1팩', priority: 'high' },
+  { category: 'after', name: '좌욕대 / 좌욕통', qty: '1', priority: 'mid' },
+  { category: 'after', name: '유축기', qty: '1', priority: 'mid' },
+  { category: 'after', name: '모유 저장팩', qty: '대량', priority: 'mid' },
+  { category: 'after', name: '수유 가운', qty: '2벌', priority: 'mid' },
+  { category: 'after', name: '미역국 재료 / 산후식 준비', qty: '', priority: 'mid' },
+  { category: 'after', name: '산모 비타민/철분제', qty: '', priority: 'high' },
+];
+
+function kidShopping(kidId, category) {
+  return state.shopping.filter(s => s.kidId === kidId && (!category || s.category === category));
+}
+
+function renderShopping() {
+  const k = getKid(); if (!k) return;
+  const items = kidShopping(k.id);
+  const summary = document.getElementById('shoppingSummary');
+  const empty = document.getElementById('shoppingEmpty');
+  const list = document.getElementById('shoppingList');
+
+  if (items.length === 0) {
+    summary.innerHTML = '';
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // 카테고리별 진행률 카드
+  const cats = ['bag', 'home', 'after', 'etc'];
+  const summaries = cats.map(cat => {
+    const catItems = items.filter(i => i.category === cat);
+    if (catItems.length === 0) return '';
+    const done = catItems.filter(i => i.checked).length;
+    const total = catItems.length;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
+    const cinfo = SHOPPING_CATS[cat];
+    return `
+      <div class="shop-summary-card" data-cat="${cat}">
+        <div class="head">
+          <div class="icon-lbl">${cinfo.icon} ${cinfo.label}</div>
+          <div class="pct">${pct}%</div>
+        </div>
+        <div class="count"><span class="num">${done}</span><span class="total">/${total}</span></div>
+        <div class="bar"><div style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  }).filter(Boolean).join('');
+  summary.innerHTML = summaries;
+
+  // 카테고리 클릭 시 해당 섹션으로 스크롤
+  summary.querySelectorAll('.shop-summary-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const target = document.querySelector(`.cat-section[data-cat="${card.dataset.cat}"]`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // 카테고리별 리스트
+  let html = '';
+  cats.forEach(cat => {
+    const catItems = items.filter(i => i.category === cat);
+    if (catItems.length === 0) return;
+    const cinfo = SHOPPING_CATS[cat];
+    const done = catItems.filter(i => i.checked).length;
+    const total = catItems.length;
+
+    // 우선순위 정렬 (필수 → 권장 → 선택), 그리고 미체크 먼저
+    const priorityOrder = { high: 0, mid: 1, low: 2 };
+    const sorted = catItems.slice().sort((a, b) => {
+      if (a.checked !== b.checked) return a.checked ? 1 : -1;
+      return (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1);
+    });
+
+    html += `
+      <div class="cat-section" data-cat="${cat}">
+        <div class="cat-section-head">
+          <div class="ttl">${cinfo.icon} ${cinfo.label}</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="meta">${done}/${total}</div>
+            <div class="toggle">▼</div>
+          </div>
+        </div>
+        <div class="cat-items">
+          ${sorted.map(item => {
+            const priorityMark = item.priority === 'high' ? '🔴' : item.priority === 'low' ? '⚪' : '🟡';
+            const desc = [];
+            if (item.qty) desc.push(`<span class="qty-tag">${escapeHtml(item.qty)}</span>`);
+            if (item.memo) desc.push(escapeHtml(item.memo));
+            return `
+              <div class="shop-item ${item.checked ? 'checked' : ''}" data-id="${item.id}">
+                <div class="check"></div>
+                <div class="body">
+                  <div class="name"><span class="priority-mark">${priorityMark}</span>${escapeHtml(item.name)}</div>
+                  ${desc.length ? `<div class="desc">${desc.join(' · ')}</div>` : ''}
+                </div>
+                <div class="actions">
+                  <button class="icon-btn" data-edit="${item.id}" title="수정">✏️</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+  list.innerHTML = html;
+
+  // 카테고리 토글 (접기/펼치기)
+  list.querySelectorAll('.cat-section-head').forEach(head => {
+    head.addEventListener('click', (e) => {
+      if (e.target.closest('.icon-btn')) return;
+      head.parentElement.classList.toggle('collapsed');
+    });
+  });
+
+  // 체크박스 토글
+  list.querySelectorAll('.shop-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.icon-btn')) return;
+      const id = el.dataset.id;
+      const item = state.shopping.find(s => s.id === id);
+      if (!item) return;
+      item.checked = !item.checked;
+      save();
+      renderShopping();
+    });
+  });
+
+  // 수정 버튼
+  list.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openShopping(btn.dataset.edit);
+    });
+  });
+}
+
+function openShopping(id) {
+  state.editingShoppingId = id || null;
+  if (id) {
+    const item = state.shopping.find(s => s.id === id);
+    if (!item) return;
+    document.getElementById('shoppingModalTitle').textContent = '육아용품 수정';
+    document.getElementById('shoppingCategory').value = item.category;
+    document.getElementById('shoppingName').value = item.name;
+    document.getElementById('shoppingQty').value = item.qty || '';
+    document.getElementById('shoppingPriority').value = item.priority || 'mid';
+    document.getElementById('shoppingMemo').value = item.memo || '';
+    document.getElementById('btnDeleteShopping').style.display = '';
+  } else {
+    document.getElementById('shoppingModalTitle').textContent = '육아용품 추가';
+    document.getElementById('shoppingCategory').value = 'bag';
+    document.getElementById('shoppingName').value = '';
+    document.getElementById('shoppingQty').value = '';
+    document.getElementById('shoppingPriority').value = 'mid';
+    document.getElementById('shoppingMemo').value = '';
+    document.getElementById('btnDeleteShopping').style.display = 'none';
+  }
+  showModal('modalShopping');
+}
+
+document.getElementById('btnAddShopping').addEventListener('click', () => openShopping());
+
+document.getElementById('btnSaveShopping').addEventListener('click', () => {
+  const name = document.getElementById('shoppingName').value.trim();
+  if (!name) return toast('품목 이름을 입력해주세요');
+  const data = {
+    category: document.getElementById('shoppingCategory').value,
+    name,
+    qty: document.getElementById('shoppingQty').value.trim(),
+    priority: document.getElementById('shoppingPriority').value,
+    memo: document.getElementById('shoppingMemo').value.trim(),
+  };
+  if (state.editingShoppingId) {
+    const item = state.shopping.find(s => s.id === state.editingShoppingId);
+    if (item) Object.assign(item, data);
+  } else {
+    state.shopping.push({
+      id: uid(), kidId: state.currentKidId,
+      ...data, checked: false, addedAt: new Date().toISOString(),
+    });
+  }
+  save(); renderShopping(); closeModal('modalShopping');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteShopping').addEventListener('click', () => {
+  if (!state.editingShoppingId) return;
+  state.shopping = state.shopping.filter(s => s.id !== state.editingShoppingId);
+  save(); renderShopping(); closeModal('modalShopping');
+  toast('삭제되었습니다');
+});
+
+document.getElementById('btnAutoShopping').addEventListener('click', () => {
+  if (!state.currentKidId) return toast('먼저 자녀를 추가해주세요');
+  confirmModal('표준 리스트 자동 등록',
+    `한국 출산 표준 체크리스트 ${SHOPPING_PRESET.length}개 항목을 자동으로 등록할까요?\n\n출산 가방 / 집 준비 / 출산 후 카테고리에 정리됩니다.`,
+    () => {
+      const now = new Date().toISOString();
+      SHOPPING_PRESET.forEach(p => {
+        state.shopping.push({
+          id: uid(), kidId: state.currentKidId,
+          category: p.category, name: p.name, qty: p.qty || '',
+          priority: p.priority || 'mid', memo: '',
+          checked: false, addedAt: now,
+        });
+      });
+      save(); renderShopping();
+      toast(`✅ ${SHOPPING_PRESET.length}개 항목이 등록되었어요`);
+    }, '등록', 'btn primary');
+});
+
+
+
+document.getElementById('btnAddMilestone').addEventListener('click', () => {
+  state.editingMilestoneId = null;
+  document.getElementById('milestoneModalTitle').textContent = '마일스톤 추가';
+  document.getElementById('milestoneDate').value = isoDate(new Date());
+  document.getElementById('milestoneIcon').value = '🌟';
+  document.getElementById('milestoneText').value = '';
+  document.getElementById('btnDeleteMilestone').style.display = 'none';
+  showModal('modalMilestone');
+});
+
+document.getElementById('btnSaveMilestone').addEventListener('click', () => {
+  const date = document.getElementById('milestoneDate').value;
+  const icon = document.getElementById('milestoneIcon').value.trim() || '🌟';
+  const text = document.getElementById('milestoneText').value.trim();
+  if (!date) return toast('날짜를 선택해주세요');
+  if (!text) return toast('내용을 입력해주세요');
+  if (state.editingMilestoneId) {
+    const m = state.milestones.find(x => x.id === state.editingMilestoneId);
+    if (m) Object.assign(m, { date, icon, text });
+  } else {
+    state.milestones.push({ id: uid(), kidId: state.currentKidId, date, icon, text });
+  }
+  save(); renderAll(); closeModal('modalMilestone');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteMilestone').addEventListener('click', () => {
+  if (!state.editingMilestoneId) return;
+  state.milestones = state.milestones.filter(m => m.id !== state.editingMilestoneId);
+  save(); renderAll(); closeModal('modalMilestone');
+  toast('삭제되었습니다');
+});
+
+window.editMilestone = (id) => {
+  const m = state.milestones.find(x => x.id === id); if (!m) return;
+  state.editingMilestoneId = id;
+  document.getElementById('milestoneModalTitle').textContent = '마일스톤 수정';
+  document.getElementById('milestoneDate').value = m.date;
+  document.getElementById('milestoneIcon').value = m.icon;
+  document.getElementById('milestoneText').value = m.text;
+  document.getElementById('btnDeleteMilestone').style.display = '';
+  showModal('modalMilestone');
+};
+
+function renderInfo() {
+  const k = getKid(); if (!k) return;
+  const cnt = { entries: kidEntries(k.id).length, growth: kidGrowth(k.id).length, milestones: kidMilestones(k.id).length };
+  document.getElementById('infoCard').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="font-size:48px;">${k.emoji || (k.gender === 'girl' ? '👧' : '👦')}</div>
+      <div><div style="font-size:18px;font-weight:700;">${escapeHtml(k.name)}</div><div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${calcAge(k.birthDate)} · ${k.gender === 'girl' ? '여자아이' : '남자아이'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
+      <div style="padding:10px 12px;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;"><div style="font-size:11px;color:var(--text-secondary);">생일</div><div style="font-weight:600;font-size:13px;margin-top:2px;">${k.birthDate || '-'}</div></div>
+      <div style="padding:10px 12px;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;"><div style="font-size:11px;color:var(--text-secondary);">일기</div><div style="font-weight:600;font-size:13px;margin-top:2px;">${cnt.entries}건</div></div>
+      <div style="padding:10px 12px;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;"><div style="font-size:11px;color:var(--text-secondary);">성장 기록</div><div style="font-weight:600;font-size:13px;margin-top:2px;">${cnt.growth}건</div></div>
+      <div style="padding:10px 12px;background:#FAFBFC;border:1px solid var(--border);border-radius:8px;"><div style="font-size:11px;color:var(--text-secondary);">마일스톤</div><div style="font-weight:600;font-size:13px;margin-top:2px;">${cnt.milestones}개</div></div>
+    </div>
+    ${k.note ? `<div style="background:#DCFCE7;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#166534;line-height:1.6;white-space:pre-wrap;">📝 ${escapeHtml(k.note)}</div>` : ''}
+    <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn" onclick="openKidModal('${k.id}')">정보 수정</button></div>
+  `;
+}
+
+function openKidModal(kidId) {
+  if (kidId) {
+    const k = state.kids.find(x => x.id === kidId); if (!k) return;
+    state.editingKidId = kidId;
+    document.getElementById('kidModalTitle').textContent = '자녀 정보 수정';
+    document.getElementById('kidName').value = k.name || '';
+    document.getElementById('kidBirthDate').value = k.birthDate || '';
+    document.getElementById('kidGender').value = k.gender || 'boy';
+    document.getElementById('kidEmoji').value = k.emoji || '';
+    document.getElementById('kidNote').value = k.note || '';
+    document.getElementById('btnDeleteKid').style.display = '';
+  } else {
+    state.editingKidId = null;
+    document.getElementById('kidModalTitle').textContent = '자녀 추가';
+    document.getElementById('kidName').value = '';
+    document.getElementById('kidBirthDate').value = '';
+    document.getElementById('kidGender').value = 'boy';
+    document.getElementById('kidEmoji').value = '';
+    document.getElementById('kidNote').value = '';
+    document.getElementById('btnDeleteKid').style.display = 'none';
+  }
+  showModal('modalKid');
+}
+window.openKidModal = openKidModal;
+
+document.getElementById('btnAddKid').addEventListener('click', () => openKidModal());
+document.getElementById('btnAddKidEmpty').addEventListener('click', () => openKidModal());
+
+document.getElementById('btnSaveKid').addEventListener('click', () => {
+  const name = document.getElementById('kidName').value.trim();
+  const birthDate = document.getElementById('kidBirthDate').value;
+  const gender = document.getElementById('kidGender').value;
+  const emoji = document.getElementById('kidEmoji').value.trim();
+  const note = document.getElementById('kidNote').value.trim();
+  if (!name) return toast('이름을 입력해주세요');
+  if (state.editingKidId) {
+    const k = state.kids.find(x => x.id === state.editingKidId);
+    if (k) Object.assign(k, { name, birthDate, gender, emoji, note });
+  } else {
+    const newK = { id: uid(), name, birthDate, gender, emoji, note };
+    state.kids.push(newK);
+    state.currentKidId = newK.id;
+  }
+  save(); renderAll(); closeModal('modalKid');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteKid').addEventListener('click', () => {
+  if (!state.editingKidId) return;
+  const id = state.editingKidId;
+  const k = state.kids.find(x => x.id === id);
+  const name = k ? k.name : '이 자녀';
+  closeModal('modalKid');  // 먼저 자녀 모달 닫기
+  confirmModal(
+    '자녀 삭제',
+    `${name}의 모든 기록(일기, 성장, 마일스톤, 신생아 케어)이 영구적으로 삭제됩니다. 정말 삭제하시겠어요?`,
+    () => {
+      state.kids = state.kids.filter(k => k.id !== id);
+      state.entries = state.entries.filter(e => e.kidId !== id);
+      state.growth = state.growth.filter(g => g.kidId !== id);
+      state.milestones = state.milestones.filter(m => m.kidId !== id);
+      // 신생아 케어 데이터도 함께 정리
+      state.feedings = state.feedings.filter(f => f.kidId !== id);
+      state.sleeps = state.sleeps.filter(s => s.kidId !== id);
+      state.temperatures = state.temperatures.filter(t => t.kidId !== id);
+      state.medications = state.medications.filter(m => m.kidId !== id);
+      state.baths = state.baths.filter(b => b.kidId !== id);
+      // 예방접종/진료기록도 정리 (다음 단계에서 추가될 데이터)
+      if (state.vaccinations) state.vaccinations = state.vaccinations.filter(v => v.kidId !== id);
+      if (state.visits) state.visits = state.visits.filter(v => v.kidId !== id);
+      if (state.pregnancy) state.pregnancy = state.pregnancy.filter(p => p.kidId !== id);
+      if (state.currentKidId === id) state.currentKidId = null;
+      state.editingKidId = null;
+      save(); renderAll();
+      toast('삭제되었습니다');
+    },
+    '삭제',
+    'btn danger'
+  );
+});
+
+/* ===== 신생아 케어 (Newborn Care) ===== */
+
+// 헬퍼: datetime 문자열 → Date
+function parseDt(s) { return s ? new Date(s) : null; }
+// Date → ISO datetime "YYYY-MM-DDTHH:mm"
+function dtIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function dtToInputs(d) {
+  return {
+    date: isoDate(d),
+    time: `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  };
+}
+function dtFromInputs(date, time) {
+  if (!date) return null;
+  return new Date(`${date}T${time || '00:00'}`);
+}
+function fmtTime(d) {
+  if (!d) return '-';
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '-';
+  const min = Math.round(ms / 60000);
+  if (min < 60) return `${min}분`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+}
+function getCareDate() {
+  return state.careDate ? new Date(state.careDate) : new Date();
+}
+
+// 케어 데이터 가져오기 (자녀별)
+function kidFeedings(kidId, dateStr) {
+  return state.feedings.filter(f => f.kidId === kidId && (!dateStr || (f.datetime || '').startsWith(dateStr)));
+}
+function kidSleeps(kidId, dateStr) {
+  return state.sleeps.filter(s => s.kidId === kidId && (!dateStr || (s.startTime || '').startsWith(dateStr)));
+}
+function kidTemperatures(kidId, dateStr) {
+  return state.temperatures.filter(t => t.kidId === kidId && (!dateStr || (t.datetime || '').startsWith(dateStr)));
+}
+function kidMedications(kidId, dateStr) {
+  return state.medications.filter(m => m.kidId === kidId && (!dateStr || (m.datetime || '').startsWith(dateStr)));
+}
+function kidBaths(kidId, dateStr) {
+  return state.baths.filter(b => b.kidId === kidId && (!dateStr || (b.datetime || '').startsWith(dateStr)));
+}
+function kidDiapers(kidId, dateStr) {
+  return state.diapers.filter(d => d.kidId === kidId && (!dateStr || (d.datetime || '').startsWith(dateStr)));
+}
+
+function renderCare() {
+  const k = getKid(); if (!k) return;
+  renderCareDateLabel();
+  renderCareSummary();
+  renderCareTimeline();
+}
+
+function renderCareDateLabel() {
+  const d = getCareDate();
+  const today = new Date();
+  const isToday = isoDate(d) === isoDate(today);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const isYesterday = isoDate(d) === isoDate(yesterday);
+  const days = ['일','월','화','수','목','금','토'];
+  let label;
+  if (isToday) label = `📅 오늘 (${d.getMonth()+1}/${d.getDate()} ${days[d.getDay()]})`;
+  else if (isYesterday) label = `📅 어제 (${d.getMonth()+1}/${d.getDate()} ${days[d.getDay()]})`;
+  else label = `📅 ${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  document.getElementById('careDateLabel').textContent = label;
+}
+
+function renderCareSummary() {
+  const k = getKid(); if (!k) return;
+  const dateStr = isoDate(getCareDate());
+  const feedings = kidFeedings(k.id, dateStr);
+  const sleeps = kidSleeps(k.id, dateStr);
+  const temps = kidTemperatures(k.id, dateStr);
+  const meds = kidMedications(k.id, dateStr);
+  const baths = kidBaths(k.id, dateStr);
+
+  // 수유 통계
+  const feedAmt = feedings.reduce((s,f) => s + (Number(f.amount) || 0), 0);
+  // 수유 간격 (마지막 두 개)
+  let lastFeedAgo = '-';
+  const sortedFeed = feedings.slice().sort((a,b) => (b.datetime||'').localeCompare(a.datetime||''));
+  if (sortedFeed.length > 0) {
+    const last = parseDt(sortedFeed[0].datetime);
+    const isToday = dateStr === isoDate(new Date());
+    if (isToday && last) {
+      const ago = Date.now() - last.getTime();
+      lastFeedAgo = ago < 3600000 ? `${Math.round(ago/60000)}분 전` : `${(ago/3600000).toFixed(1)}시간 전`;
+    } else {
+      lastFeedAgo = `마지막 ${fmtTime(last)}`;
+    }
+  }
+
+  // 수면 총 시간
+  let sleepMs = 0;
+  sleeps.forEach(s => {
+    const start = parseDt(s.startTime);
+    const end = s.endTime ? parseDt(s.endTime) : null;
+    if (start && end) sleepMs += end.getTime() - start.getTime();
+  });
+
+  // 발열 여부
+  const maxTemp = temps.reduce((m,t) => Math.max(m, Number(t.temp) || 0), 0);
+  const isFever = maxTemp >= 37.5;
+
+  document.getElementById('careSummary').innerHTML = `
+    <div class="care-summary-card" style="background:#FFF7ED;border-color:#FED7AA;">
+      <div class="label">🍼 수유</div>
+      <div class="value" style="color:#9A3412;">${feedings.length}회</div>
+      <div class="sub">${feedAmt > 0 ? feedAmt + 'mL · ' : ''}${lastFeedAgo}</div>
+    </div>
+    <div class="care-summary-card" style="background:#EEF2FF;border-color:#C7D2FE;">
+      <div class="label">😴 수면</div>
+      <div class="value" style="color:#3730A3;">${sleeps.length}회</div>
+      <div class="sub">${sleepMs > 0 ? '총 ' + fmtDuration(sleepMs) : '기록 없음'}</div>
+    </div>
+    <div class="care-summary-card" style="background:${isFever ? '#FEF2F2' : '#fff'};border-color:${isFever ? '#FECACA' : 'var(--border)'};">
+      <div class="label">🌡️ 체온</div>
+      <div class="value" style="color:${isFever ? '#B91C1C' : 'var(--text)'};">${temps.length > 0 ? maxTemp.toFixed(1) + '°C' : '-'}</div>
+      <div class="sub">${isFever ? '⚠️ 발열 주의' : (temps.length > 0 ? `${temps.length}회 측정` : '기록 없음')}</div>
+    </div>
+    <div class="care-summary-card" style="background:#F5F3FF;border-color:#DDD6FE;">
+      <div class="label">💊 약물</div>
+      <div class="value" style="color:#5B21B6;">${meds.length}회</div>
+      <div class="sub">${meds.length > 0 ? meds.map(m => m.name).filter(Boolean).slice(0,2).join(', ') || '복용' : '복용 없음'}</div>
+    </div>
+    <div class="care-summary-card" style="background:#ECFEFF;border-color:#A5F3FC;">
+      <div class="label">🛁 목욕</div>
+      <div class="value" style="color:#155E75;">${baths.length}회</div>
+      <div class="sub">${baths.length > 0 ? '오늘 함' : '아직 안 함'}</div>
+    </div>
+  `;
+}
+
+function renderCareTimeline() {
+  const k = getKid(); if (!k) return;
+  const dateStr = isoDate(getCareDate());
+  const events = [];
+  // 수유
+  kidFeedings(k.id, dateStr).forEach(f => {
+    const dt = parseDt(f.datetime);
+    if (!dt) return;
+    let title = '수유';
+    if (f.type === 'breast') title = '🤱 모유 수유';
+    else if (f.type === 'formula') title = '🍼 분유 수유';
+    else if (f.type === 'mixed') title = '🍼🤱 혼합 수유';
+    else if (f.type === 'solid') title = '🥄 이유식';
+    let desc = [];
+    if (f.amount) desc.push(`${f.amount}mL`);
+    if (f.durationMin) desc.push(`${f.durationMin}분`);
+    if (f.side === 'left') desc.push('왼쪽');
+    else if (f.side === 'right') desc.push('오른쪽');
+    else if (f.side === 'both') desc.push('양쪽');
+    if (f.memo) desc.push(f.memo);
+    events.push({ dt, time: fmtTime(dt), icon: '🍼', title, desc: desc.join(' · '), kind: 'feeding', id: f.id });
+  });
+  // 수면
+  kidSleeps(k.id, dateStr).forEach(s => {
+    const dt = parseDt(s.startTime);
+    if (!dt) return;
+    const end = s.endTime ? parseDt(s.endTime) : null;
+    const dur = end ? end.getTime() - dt.getTime() : 0;
+    let title = s.type === 'night' ? '🌙 밤잠' : (s.type === 'nap' ? '🌞 낮잠' : '😴 수면');
+    let desc = [];
+    if (end) desc.push(`${fmtTime(dt)} ~ ${fmtTime(end)} (${fmtDuration(dur)})`);
+    else desc.push(`${fmtTime(dt)} 시작 · 종료 미입력`);
+    if (s.memo) desc.push(s.memo);
+    events.push({ dt, time: fmtTime(dt), icon: '😴', title, desc: desc.join(' · '), kind: 'sleep', id: s.id });
+  });
+  // 체온
+  kidTemperatures(k.id, dateStr).forEach(t => {
+    const dt = parseDt(t.datetime);
+    if (!dt) return;
+    const temp = Number(t.temp) || 0;
+    const isFever = temp >= 37.5;
+    const locLabel = { forehead:'이마', ear:'귀', armpit:'겨드랑이', rectal:'항문' }[t.location] || '';
+    events.push({
+      dt, time: fmtTime(dt), icon: isFever ? '🔥' : '🌡️',
+      title: `${temp.toFixed(1)}°C${isFever ? ' 발열' : ''}`,
+      desc: [locLabel, t.memo].filter(Boolean).join(' · '),
+      kind: 'temp', id: t.id, fever: isFever
+    });
+  });
+  // 약물
+  kidMedications(k.id, dateStr).forEach(m => {
+    const dt = parseDt(m.datetime);
+    if (!dt) return;
+    let desc = [];
+    if (m.dosage) desc.push(m.dosage);
+    if (m.reason) desc.push(`사유: ${m.reason}`);
+    if (m.memo) desc.push(m.memo);
+    events.push({ dt, time: fmtTime(dt), icon: '💊', title: `💊 ${m.name || '약물'}`, desc: desc.join(' · '), kind: 'med', id: m.id });
+  });
+  // 목욕
+  kidBaths(k.id, dateStr).forEach(b => {
+    const dt = parseDt(b.datetime);
+    if (!dt) return;
+    let title = '🛁 목욕';
+    if (b.bathType === 'sponge') title = '🧽 스폰지 목욕';
+    else if (b.bathType === 'wipe') title = '🧻 물수건 닦기';
+    events.push({ dt, time: fmtTime(dt), icon: '🛁', title, desc: b.memo || '', kind: 'bath', id: b.id });
+  });
+  // 기저귀
+  kidDiapers(k.id, dateStr).forEach(d => {
+    const dt = parseDt(d.datetime);
+    if (!dt) return;
+    let icon = '💧'; let title = '💧 소변';
+    if (d.type === 'poo') { icon = '💩'; title = '💩 대변'; }
+    else if (d.type === 'both') { icon = '💧💩'; title = '💧💩 소변+대변'; }
+    let desc = [];
+    const colorLabels = { yellow:'노란색(정상)', green:'초록색', brown:'갈색', dark:'짙은색', watery:'묽음', hard:'단단함', red:'⚠️ 붉은색', white:'⚠️ 흰색' };
+    if (d.color) desc.push(colorLabels[d.color] || d.color);
+    if (d.memo) desc.push(d.memo);
+    events.push({ dt, time: fmtTime(dt), icon, title, desc: desc.join(' · '), kind: 'diaper', id: d.id });
+  });
+
+  // 시간 역순 정렬 (최신이 위)
+  events.sort((a,b) => b.dt.getTime() - a.dt.getTime());
+
+  const wrap = document.getElementById('careTimeline');
+  if (events.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">🍼</div><div class="label">아직 기록이 없어요</div><div class="sub">위 빠른 입력 버튼으로 첫 기록을 남겨보세요</div></div>`;
+    return;
+  }
+  wrap.innerHTML = events.map(e => `
+    <div class="care-event ${e.fever ? 'fever' : ''}">
+      <div class="time">${e.time}</div>
+      <div class="icon">${e.icon}</div>
+      <div class="body">
+        <div class="title">${e.title}</div>
+        ${e.desc ? `<div class="desc">${escapeHtml(e.desc)}</div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="icon-btn" onclick="editCare('${e.kind}','${e.id}')">✏️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.editCare = (kind, id) => {
+  if (kind === 'feeding') openFeeding(id);
+  else if (kind === 'sleep') openSleep(id);
+  else if (kind === 'temp') openTemp(id);
+  else if (kind === 'med') openMed(id);
+  else if (kind === 'bath') openBath(id);
+  else if (kind === 'diaper') openDiaper(id);
+};
+
+// 빠른 입력 버튼
+document.querySelectorAll('.care-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.careAdd;
+    if (t === 'feeding') openFeeding();
+    else if (t === 'sleep') openSleep();
+    else if (t === 'temp') openTemp();
+    else if (t === 'med') openMed();
+    else if (t === 'bath') openBath();
+    else if (t === 'diaper') openDiaper();
+  });
+});
+
+// ============= 기저귀 모달 =============
+function openDiaper(id) {
+  state.editingDiaperId = id || null;
+  const fmtNow = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+  if (id) {
+    const item = state.diapers.find(d => d.id === id);
+    if (!item) return;
+    document.getElementById('diaperModalTitle').textContent = '기저귀 기록 수정';
+    document.getElementById('diaperDt').value = (item.datetime || '').slice(0,16);
+    document.querySelector(`input[name="diaperType"][value="${item.type || 'pee'}"]`).checked = true;
+    document.getElementById('diaperColor').value = item.color || '';
+    document.getElementById('diaperMemo').value = item.memo || '';
+    document.getElementById('btnDeleteDiaper').style.display = '';
+  } else {
+    document.getElementById('diaperModalTitle').textContent = '기저귀 기록';
+    document.getElementById('diaperDt').value = fmtNow();
+    document.querySelector('input[name="diaperType"][value="pee"]').checked = true;
+    document.getElementById('diaperColor').value = '';
+    document.getElementById('diaperMemo').value = '';
+    document.getElementById('btnDeleteDiaper').style.display = 'none';
+  }
+  showModal('modalDiaper');
+}
+
+document.getElementById('btnSaveDiaper').addEventListener('click', () => {
+  const dt = document.getElementById('diaperDt').value;
+  if (!dt) return toast('시간을 선택해주세요');
+  const type = document.querySelector('input[name="diaperType"]:checked')?.value || 'pee';
+  const color = document.getElementById('diaperColor').value || '';
+  const memo = document.getElementById('diaperMemo').value.trim();
+
+  if (state.editingDiaperId) {
+    const d = state.diapers.find(x => x.id === state.editingDiaperId);
+    if (d) Object.assign(d, { datetime: dt, type, color, memo });
+  } else {
+    state.diapers.push({
+      id: uid(), kidId: state.currentKidId,
+      datetime: dt, type, color, memo,
+    });
+  }
+  save(); renderAll(); closeModal('modalDiaper');
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteDiaper').addEventListener('click', () => {
+  if (!state.editingDiaperId) return;
+  state.diapers = state.diapers.filter(d => d.id !== state.editingDiaperId);
+  save(); renderAll(); closeModal('modalDiaper');
+  toast('삭제되었습니다');
+});
+
+// 날짜 네비게이션
+document.getElementById('careDatePrev').addEventListener('click', () => {
+  const d = getCareDate(); d.setDate(d.getDate() - 1);
+  state.careDate = isoDate(d); renderCare();
+});
+document.getElementById('careDateNext').addEventListener('click', () => {
+  const d = getCareDate(); d.setDate(d.getDate() + 1);
+  state.careDate = isoDate(d); renderCare();
+});
+document.getElementById('careDateToday').addEventListener('click', () => {
+  state.careDate = null; renderCare();
+});
+
+/* ===== 수유 ===== */
+function openFeeding(id) {
+  state.editingFeedingId = id || null;
+  const ex = id ? state.feedings.find(f => f.id === id) : null;
+  document.getElementById('feedingModalTitle').textContent = ex ? '🍼 수유 수정' : '🍼 수유 기록';
+  let dt;
+  if (ex) dt = parseDt(ex.datetime);
+  else if (state.careDate) {
+    dt = new Date(state.careDate);
+    const now = new Date();
+    dt.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  } else dt = new Date();
+  const inp = dtToInputs(dt);
+  document.getElementById('feedingDate').value = inp.date;
+  document.getElementById('feedingTime').value = inp.time;
+  document.getElementById('feedingType').value = ex?.type || 'breast';
+  document.getElementById('feedingSide').value = ex?.side || '';
+  document.getElementById('feedingAmount').value = ex?.amount || '';
+  document.getElementById('feedingDuration').value = ex?.durationMin || '';
+  document.getElementById('feedingMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteFeeding').style.display = ex ? '' : 'none';
+  toggleFeedingSide();
+  showModal('modalFeeding');
+}
+function toggleFeedingSide() {
+  const t = document.getElementById('feedingType').value;
+  document.getElementById('feedingSideField').style.display = (t === 'breast' || t === 'mixed') ? '' : 'none';
+}
+document.getElementById('feedingType').addEventListener('change', toggleFeedingSide);
+document.getElementById('btnSaveFeeding').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('feedingDate').value;
+  const time = document.getElementById('feedingTime').value;
+  if (!date) return toast('날짜를 입력하세요');
+  const datetime = dtIso(dtFromInputs(date, time));
+  const data = {
+    kidId: k.id,
+    datetime,
+    type: document.getElementById('feedingType').value,
+    side: document.getElementById('feedingSide').value || null,
+    amount: parseInt(document.getElementById('feedingAmount').value) || null,
+    durationMin: parseInt(document.getElementById('feedingDuration').value) || null,
+    memo: document.getElementById('feedingMemo').value.trim() || null,
+  };
+  if (state.editingFeedingId) {
+    const i = state.feedings.findIndex(f => f.id === state.editingFeedingId);
+    if (i !== -1) state.feedings[i] = { ...state.feedings[i], ...data };
+  } else {
+    state.feedings.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalFeeding'); renderCare(); toast('수유 기록 저장됨');
+});
+document.getElementById('btnDeleteFeeding').addEventListener('click', () => {
+  if (!state.editingFeedingId) return;
+  state.feedings = state.feedings.filter(f => f.id !== state.editingFeedingId);
+  save(); closeModal('modalFeeding'); renderCare(); toast('삭제되었습니다');
+});
+
+/* ===== 수면 ===== */
+function openSleep(id) {
+  state.editingSleepId = id || null;
+  const ex = id ? state.sleeps.find(s => s.id === id) : null;
+  document.getElementById('sleepModalTitle').textContent = ex ? '😴 수면 수정' : '😴 수면 기록';
+  let startDt;
+  if (ex) startDt = parseDt(ex.startTime);
+  else if (state.careDate) {
+    startDt = new Date(state.careDate);
+    const now = new Date();
+    startDt.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  } else startDt = new Date();
+  const sIn = dtToInputs(startDt);
+  document.getElementById('sleepStartDate').value = sIn.date;
+  document.getElementById('sleepStartTime').value = sIn.time;
+  if (ex && ex.endTime) {
+    const eIn = dtToInputs(parseDt(ex.endTime));
+    document.getElementById('sleepEndDate').value = eIn.date;
+    document.getElementById('sleepEndTime').value = eIn.time;
+  } else {
+    document.getElementById('sleepEndDate').value = '';
+    document.getElementById('sleepEndTime').value = '';
+  }
+  document.getElementById('sleepType').value = ex?.type || 'auto';
+  document.getElementById('sleepMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteSleep').style.display = ex ? '' : 'none';
+  showModal('modalSleep');
+}
+document.getElementById('btnSaveSleep').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const sd = document.getElementById('sleepStartDate').value;
+  const st = document.getElementById('sleepStartTime').value;
+  if (!sd) return toast('시작 날짜를 입력하세요');
+  const startDt = dtFromInputs(sd, st);
+  const ed = document.getElementById('sleepEndDate').value;
+  const et = document.getElementById('sleepEndTime').value;
+  const endDt = ed ? dtFromInputs(ed, et) : null;
+  let type = document.getElementById('sleepType').value;
+  if (type === 'auto') {
+    const h = startDt.getHours();
+    type = (h >= 19 || h < 6) ? 'night' : 'nap';
+  }
+  const data = {
+    kidId: k.id,
+    startTime: dtIso(startDt),
+    endTime: endDt ? dtIso(endDt) : null,
+    type,
+    memo: document.getElementById('sleepMemo').value.trim() || null,
+  };
+  if (state.editingSleepId) {
+    const i = state.sleeps.findIndex(s => s.id === state.editingSleepId);
+    if (i !== -1) state.sleeps[i] = { ...state.sleeps[i], ...data };
+  } else {
+    state.sleeps.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalSleep'); renderCare(); toast('수면 기록 저장됨');
+});
+document.getElementById('btnDeleteSleep').addEventListener('click', () => {
+  if (!state.editingSleepId) return;
+  state.sleeps = state.sleeps.filter(s => s.id !== state.editingSleepId);
+  save(); closeModal('modalSleep'); renderCare(); toast('삭제되었습니다');
+});
+
+/* ===== 체온 ===== */
+function openTemp(id) {
+  state.editingTempId = id || null;
+  const ex = id ? state.temperatures.find(t => t.id === id) : null;
+  document.getElementById('tempModalTitle').textContent = ex ? '🌡️ 체온 수정' : '🌡️ 체온 기록';
+  let dt;
+  if (ex) dt = parseDt(ex.datetime);
+  else if (state.careDate) {
+    dt = new Date(state.careDate);
+    const now = new Date();
+    dt.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  } else dt = new Date();
+  const inp = dtToInputs(dt);
+  document.getElementById('tempDate').value = inp.date;
+  document.getElementById('tempTime').value = inp.time;
+  document.getElementById('tempValue').value = ex?.temp || '';
+  document.getElementById('tempLocation').value = ex?.location || 'forehead';
+  document.getElementById('tempMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteTemp').style.display = ex ? '' : 'none';
+  updateTempWarning();
+  showModal('modalTemp');
+}
+function updateTempWarning() {
+  const v = parseFloat(document.getElementById('tempValue').value);
+  const w = document.getElementById('tempWarning');
+  if (!v) { w.style.display = 'none'; return; }
+  if (v >= 38.5) {
+    w.style.display = ''; w.textContent = '🔥 고열입니다. 해열제 복용 또는 병원 방문을 고려하세요.';
+    w.style.color = '#991B1B';
+  } else if (v >= 37.5) {
+    w.style.display = ''; w.textContent = '⚠️ 미열입니다. 경과를 지켜보세요.';
+    w.style.color = '#C2410C';
+  } else if (v < 36.0) {
+    w.style.display = ''; w.textContent = '⚠️ 저체온입니다. 보온에 주의하세요.';
+    w.style.color = '#1E40AF';
+  } else {
+    w.style.display = 'none';
+  }
+}
+document.getElementById('tempValue').addEventListener('input', updateTempWarning);
+document.getElementById('btnSaveTemp').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('tempDate').value;
+  const time = document.getElementById('tempTime').value;
+  const tempVal = parseFloat(document.getElementById('tempValue').value);
+  if (!date || !tempVal) return toast('날짜와 체온을 입력하세요');
+  const data = {
+    kidId: k.id,
+    datetime: dtIso(dtFromInputs(date, time)),
+    temp: tempVal,
+    location: document.getElementById('tempLocation').value,
+    memo: document.getElementById('tempMemo').value.trim() || null,
+  };
+  if (state.editingTempId) {
+    const i = state.temperatures.findIndex(t => t.id === state.editingTempId);
+    if (i !== -1) state.temperatures[i] = { ...state.temperatures[i], ...data };
+  } else {
+    state.temperatures.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalTemp'); renderCare();
+  toast(tempVal >= 37.5 ? '발열 기록 저장됨 ⚠️' : '체온 기록 저장됨');
+});
+document.getElementById('btnDeleteTemp').addEventListener('click', () => {
+  if (!state.editingTempId) return;
+  state.temperatures = state.temperatures.filter(t => t.id !== state.editingTempId);
+  save(); closeModal('modalTemp'); renderCare(); toast('삭제되었습니다');
+});
+
+/* ===== 약물 ===== */
+function openMed(id) {
+  state.editingMedId = id || null;
+  const ex = id ? state.medications.find(m => m.id === id) : null;
+  document.getElementById('medModalTitle').textContent = ex ? '💊 약물 수정' : '💊 약물 복용';
+  let dt;
+  if (ex) dt = parseDt(ex.datetime);
+  else if (state.careDate) {
+    dt = new Date(state.careDate);
+    const now = new Date();
+    dt.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  } else dt = new Date();
+  const inp = dtToInputs(dt);
+  document.getElementById('medDate').value = inp.date;
+  document.getElementById('medTime').value = inp.time;
+  document.getElementById('medName').value = ex?.name || '';
+  document.getElementById('medDosage').value = ex?.dosage || '';
+  document.getElementById('medReason').value = ex?.reason || '';
+  document.getElementById('medMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteMed').style.display = ex ? '' : 'none';
+  showModal('modalMed');
+}
+document.getElementById('btnSaveMed').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('medDate').value;
+  const time = document.getElementById('medTime').value;
+  const name = document.getElementById('medName').value.trim();
+  if (!date || !name) return toast('날짜와 약 이름을 입력하세요');
+  const data = {
+    kidId: k.id,
+    datetime: dtIso(dtFromInputs(date, time)),
+    name,
+    dosage: document.getElementById('medDosage').value.trim() || null,
+    reason: document.getElementById('medReason').value || null,
+    memo: document.getElementById('medMemo').value.trim() || null,
+  };
+  if (state.editingMedId) {
+    const i = state.medications.findIndex(m => m.id === state.editingMedId);
+    if (i !== -1) state.medications[i] = { ...state.medications[i], ...data };
+  } else {
+    state.medications.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalMed'); renderCare(); toast('약물 기록 저장됨');
+});
+document.getElementById('btnDeleteMed').addEventListener('click', () => {
+  if (!state.editingMedId) return;
+  state.medications = state.medications.filter(m => m.id !== state.editingMedId);
+  save(); closeModal('modalMed'); renderCare(); toast('삭제되었습니다');
+});
+
+/* ===== 목욕 ===== */
+function openBath(id) {
+  state.editingBathId = id || null;
+  const ex = id ? state.baths.find(b => b.id === id) : null;
+  document.getElementById('bathModalTitle').textContent = ex ? '🛁 목욕 수정' : '🛁 목욕 기록';
+  let dt;
+  if (ex) dt = parseDt(ex.datetime);
+  else if (state.careDate) {
+    dt = new Date(state.careDate);
+    const now = new Date();
+    dt.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  } else dt = new Date();
+  const inp = dtToInputs(dt);
+  document.getElementById('bathDate').value = inp.date;
+  document.getElementById('bathTime').value = inp.time;
+  document.getElementById('bathType').value = ex?.bathType || 'tub';
+  document.getElementById('bathMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteBath').style.display = ex ? '' : 'none';
+  showModal('modalBath');
+}
+document.getElementById('btnSaveBath').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('bathDate').value;
+  const time = document.getElementById('bathTime').value;
+  if (!date) return toast('날짜를 입력하세요');
+  const data = {
+    kidId: k.id,
+    datetime: dtIso(dtFromInputs(date, time)),
+    bathType: document.getElementById('bathType').value,
+    memo: document.getElementById('bathMemo').value.trim() || null,
+  };
+  if (state.editingBathId) {
+    const i = state.baths.findIndex(b => b.id === state.editingBathId);
+    if (i !== -1) state.baths[i] = { ...state.baths[i], ...data };
+  } else {
+    state.baths.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalBath'); renderCare(); toast('목욕 기록 저장됨');
+});
+document.getElementById('btnDeleteBath').addEventListener('click', () => {
+  if (!state.editingBathId) return;
+  state.baths = state.baths.filter(b => b.id !== state.editingBathId);
+  save(); closeModal('modalBath'); renderCare(); toast('삭제되었습니다');
+});
+
+/* 자녀 삭제 시 케어 데이터도 함께 삭제 */
+const _origBtnDeleteKid = document.getElementById('btnDeleteKid');
+// 위는 btnDeleteKid 핸들러 직접 추가하지 못하니, save() 직전에 한 번 더 cleanup
+// 대신 자녀 삭제 시 호출되는 곳에서 케어 데이터도 정리됨 (아래 헬퍼)
+function cleanupCareDataForKid(kidId) {
+  state.feedings = state.feedings.filter(x => x.kidId !== kidId);
+  state.sleeps = state.sleeps.filter(x => x.kidId !== kidId);
+  state.temperatures = state.temperatures.filter(x => x.kidId !== kidId);
+  state.medications = state.medications.filter(x => x.kidId !== kidId);
+  state.baths = state.baths.filter(x => x.kidId !== kidId);
+}
+window.cleanupCareDataForKid = cleanupCareDataForKid;
+
+/* ===== 자동 마일스톤화 헬퍼 ===== */
+function autoMilestone(kidId, key, date, icon, text) {
+  // 같은 key는 한 번만 추가
+  const existing = state.milestones.find(m => m.kidId === kidId && m._auto === key);
+  if (existing) return;
+  state.milestones.push({
+    id: uid(), kidId, date, icon, text, _auto: key
+  });
+}
+
+// 케어 데이터 변경 시 호출되어 자동 마일스톤 등록
+function checkAutoMilestones(kidId) {
+  if (!kidId) return;
+  const feedings = kidFeedings(kidId);
+  const baths = kidBaths(kidId);
+  const sleeps = kidSleeps(kidId);
+
+  // 첫 수유
+  if (feedings.length > 0) {
+    const first = feedings.slice().sort((a,b) => (a.datetime||'').localeCompare(b.datetime||''))[0];
+    autoMilestone(kidId, 'first_feed', first.datetime.slice(0,10), '🍼', '첫 수유');
+  }
+  // 첫 목욕
+  if (baths.length > 0) {
+    const first = baths.slice().sort((a,b) => (a.datetime||'').localeCompare(b.datetime||''))[0];
+    autoMilestone(kidId, 'first_bath', first.datetime.slice(0,10), '🛁', '첫 목욕');
+  }
+  // 첫 밤잠 (4시간 이상 연속)
+  const longSleeps = sleeps.filter(s => {
+    if (!s.startTime || !s.endTime) return false;
+    const dur = parseDt(s.endTime) - parseDt(s.startTime);
+    return dur >= 4 * 3600 * 1000;
+  });
+  if (longSleeps.length > 0) {
+    const first = longSleeps.slice().sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''))[0];
+    autoMilestone(kidId, 'first_long_sleep', first.startTime.slice(0,10), '😴', '첫 4시간 연속 수면');
+  }
+}
+
+// 기존 케어 저장 후 마일스톤 체크 자동 호출
+const _origSave = save;
+save = function() {
+  if (state.currentKidId) checkAutoMilestones(state.currentKidId);
+  _origSave();
+};
+
+/* ===== 한국 표준 예방접종 일정 ===== */
+// 출생일 기준 권장 일자 (월령 또는 일자 기준)
+// 2024 한국 표준예방접종일정표 기준
+const KR_VACCINE_SCHEDULE = [
+  { id: 'bcg', name: 'BCG (결핵)', monthsAfterBirth: 1, info: '생후 4주 이내' },
+  { id: 'hepb1', name: 'B형간염 1차', daysAfterBirth: 0, info: '생후 즉시' },
+  { id: 'hepb2', name: 'B형간염 2차', monthsAfterBirth: 1, info: '생후 1개월' },
+  { id: 'hepb3', name: 'B형간염 3차', monthsAfterBirth: 6, info: '생후 6개월' },
+  { id: 'dtap1', name: 'DTaP 1차 (디프테리아/파상풍/백일해)', monthsAfterBirth: 2, info: '생후 2개월' },
+  { id: 'dtap2', name: 'DTaP 2차', monthsAfterBirth: 4, info: '생후 4개월' },
+  { id: 'dtap3', name: 'DTaP 3차', monthsAfterBirth: 6, info: '생후 6개월' },
+  { id: 'ipv1', name: '폴리오 1차', monthsAfterBirth: 2, info: '생후 2개월' },
+  { id: 'ipv2', name: '폴리오 2차', monthsAfterBirth: 4, info: '생후 4개월' },
+  { id: 'ipv3', name: '폴리오 3차', monthsAfterBirth: 6, info: '생후 6~18개월' },
+  { id: 'hib1', name: 'Hib (b형 헤모필루스 인플루엔자) 1차', monthsAfterBirth: 2, info: '생후 2개월' },
+  { id: 'hib2', name: 'Hib 2차', monthsAfterBirth: 4, info: '생후 4개월' },
+  { id: 'hib3', name: 'Hib 3차', monthsAfterBirth: 6, info: '생후 6개월' },
+  { id: 'pcv1', name: 'PCV (폐렴구균) 1차', monthsAfterBirth: 2, info: '생후 2개월' },
+  { id: 'pcv2', name: 'PCV 2차', monthsAfterBirth: 4, info: '생후 4개월' },
+  { id: 'pcv3', name: 'PCV 3차', monthsAfterBirth: 6, info: '생후 6개월' },
+  { id: 'rota1', name: '로타바이러스 1차', monthsAfterBirth: 2, info: '생후 2개월' },
+  { id: 'rota2', name: '로타바이러스 2차', monthsAfterBirth: 4, info: '생후 4개월' },
+  { id: 'mmr1', name: 'MMR (홍역/유행성이하선염/풍진) 1차', monthsAfterBirth: 12, info: '생후 12~15개월' },
+  { id: 'var', name: '수두', monthsAfterBirth: 12, info: '생후 12~15개월' },
+  { id: 'hepa1', name: 'A형간염 1차', monthsAfterBirth: 12, info: '생후 12개월' },
+  { id: 'je1', name: '일본뇌염 (불활성화 1차)', monthsAfterBirth: 12, info: '생후 12개월' },
+  { id: 'flu', name: '인플루엔자 1차', monthsAfterBirth: 6, info: '생후 6개월 ~ 매년' },
+];
+
+function calcVaccineDate(birthDate, item) {
+  if (!birthDate) return null;
+  const d = new Date(birthDate);
+  if (item.daysAfterBirth != null) d.setDate(d.getDate() + item.daysAfterBirth);
+  if (item.monthsAfterBirth != null) d.setMonth(d.getMonth() + item.monthsAfterBirth);
+  return isoDate(d);
+}
+
+function autoFillVaccines(kidId) {
+  const k = state.kids.find(x => x.id === kidId); if (!k || !k.birthDate) return;
+  let added = 0;
+  KR_VACCINE_SCHEDULE.forEach(item => {
+    // 같은 백신 ID가 이미 있으면 추가 안 함
+    const exists = state.vaccinations.some(v => v.kidId === kidId && v.vaccineId === item.id);
+    if (exists) return;
+    const date = calcVaccineDate(k.birthDate, item);
+    state.vaccinations.push({
+      id: uid(), kidId, vaccineId: item.id,
+      name: item.name, scheduledDate: date, completedDate: null,
+      hospital: '', memo: item.info,
+    });
+    added++;
+  });
+  return added;
+}
+
+/* ===== 예방접종 렌더 ===== */
+function renderVaccine() {
+  const k = getKid(); if (!k) return;
+  const list = state.vaccinations.filter(v => v.kidId === k.id)
+    .sort((a,b) => (a.scheduledDate || '').localeCompare(b.scheduledDate || ''));
+
+  // 요약 카드: 완료/예정/지연
+  const today = isoDate(new Date());
+  let completed = 0, upcoming = 0, overdue = 0;
+  list.forEach(v => {
+    if (v.completedDate) completed++;
+    else if (v.scheduledDate && v.scheduledDate < today) overdue++;
+    else upcoming++;
+  });
+
+  document.getElementById('vaccineSummary').innerHTML = `
+    <div style="padding:12px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;">
+      <div style="font-size:11px;color:#166534;font-weight:500;">✅ 완료</div>
+      <div style="font-size:20px;font-weight:700;color:#16A34A;margin-top:2px;">${completed}건</div>
+    </div>
+    <div style="padding:12px 14px;background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;">
+      <div style="font-size:11px;color:#3730A3;font-weight:500;">📅 예정</div>
+      <div style="font-size:20px;font-weight:700;color:#4F46E5;margin-top:2px;">${upcoming}건</div>
+    </div>
+    <div style="padding:12px 14px;background:${overdue > 0 ? '#FEF2F2' : '#FAFBFC'};border:1px solid ${overdue > 0 ? '#FECACA' : 'var(--border)'};border-radius:10px;">
+      <div style="font-size:11px;color:${overdue > 0 ? '#991B1B' : 'var(--text-secondary)'};font-weight:500;">${overdue > 0 ? '⚠️' : '⏰'} 지연</div>
+      <div style="font-size:20px;font-weight:700;color:${overdue > 0 ? '#B91C1C' : 'var(--text-secondary)'};margin-top:2px;">${overdue}건</div>
+    </div>
+  `;
+
+  const wrap = document.getElementById('vaccineList');
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">💉</div><div class="label">아직 예방접종 일정이 없어요</div><div class="sub">"표준 일정 자동 등록"으로 한국 표준 일정을 한번에 추가할 수 있습니다</div></div>`;
+    return;
+  }
+
+  // 월별 그룹화
+  const byMonth = {};
+  list.forEach(v => {
+    const key = (v.scheduledDate || '').slice(0,7) || '미지정';
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(v);
+  });
+
+  wrap.innerHTML = Object.keys(byMonth).sort().map(month => {
+    const items = byMonth[month];
+    const monthLabel = month === '미지정' ? '날짜 미지정' : `${month.slice(0,4)}년 ${parseInt(month.slice(5))}월`;
+    return `
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;padding:0 4px;">${monthLabel}</div>
+        ${items.map(v => {
+          const isComplete = !!v.completedDate;
+          const isOverdue = !isComplete && v.scheduledDate && v.scheduledDate < today;
+          const bgColor = isComplete ? '#F0FDF4' : (isOverdue ? '#FEF2F2' : '#fff');
+          const borderColor = isComplete ? '#BBF7D0' : (isOverdue ? '#FECACA' : 'var(--border)');
+          return `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${bgColor};border:1px solid ${borderColor};border-radius:10px;margin-bottom:6px;">
+              <div style="font-size:24px;flex-shrink:0;">${isComplete ? '✅' : '💉'}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;${isComplete ? 'text-decoration:line-through;color:var(--text-tertiary);' : ''}">${escapeHtml(v.name)}</div>
+                <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">
+                  예정: ${v.scheduledDate || '-'}
+                  ${isComplete ? ` · 완료: ${v.completedDate}` : ''}
+                  ${isOverdue ? ' · ⚠️ 지연됨' : ''}
+                  ${v.hospital ? ` · ${escapeHtml(v.hospital)}` : ''}
+                </div>
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0;">
+                ${!isComplete ? `<button class="btn small primary" onclick="completeVaccine('${v.id}')">완료</button>` : ''}
+                <button class="btn small" onclick="editVaccine('${v.id}')">수정</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+window.editVaccine = (id) => openVaccineModal(id);
+window.completeVaccine = (id) => {
+  const v = state.vaccinations.find(x => x.id === id);
+  if (!v) return;
+  v.completedDate = isoDate(new Date());
+  // 자동 마일스톤화
+  autoMilestone(v.kidId, 'vaccine_' + v.vaccineId, v.completedDate, '💉', `${v.name} 완료`);
+  save(); renderVaccine();
+  toast(`${v.name} 완료 처리됨`);
+};
+
+function openVaccineModal(id) {
+  state.editingVaccinationId = id || null;
+  const ex = id ? state.vaccinations.find(v => v.id === id) : null;
+  document.getElementById('vaccineModalTitle').textContent = ex ? '💉 예방접종 수정' : '💉 예방접종 추가';
+  document.getElementById('vaccineName').value = ex?.name || '';
+  document.getElementById('vaccineScheduledDate').value = ex?.scheduledDate || '';
+  document.getElementById('vaccineCompletedDate').value = ex?.completedDate || '';
+  document.getElementById('vaccineHospital').value = ex?.hospital || '';
+  document.getElementById('vaccineMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteVaccine').style.display = ex ? '' : 'none';
+  showModal('modalVaccine');
+}
+
+document.getElementById('btnAddVaccine').addEventListener('click', () => openVaccineModal());
+document.getElementById('btnAutoVaccine').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  if (!k.birthDate) return toast('자녀 정보에 생년월일이 필요합니다');
+  confirmModal(
+    '표준 예방접종 일정 자동 등록',
+    `한국 표준예방접종일정표(${KR_VACCINE_SCHEDULE.length}종)를 자녀의 생년월일 기준으로 자동 등록합니다. 이미 등록된 백신은 건너뜁니다.`,
+    () => {
+      const added = autoFillVaccines(k.id);
+      save(); renderVaccine();
+      toast(added > 0 ? `${added}종이 추가되었습니다` : '이미 모든 표준 일정이 등록되어 있어요');
+    },
+    '등록',
+    'btn primary'
+  );
+});
+
+document.getElementById('btnSaveVaccine').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const name = document.getElementById('vaccineName').value.trim();
+  const scheduledDate = document.getElementById('vaccineScheduledDate').value;
+  const completedDate = document.getElementById('vaccineCompletedDate').value || null;
+  const hospital = document.getElementById('vaccineHospital').value.trim();
+  const memo = document.getElementById('vaccineMemo').value.trim();
+  if (!name) return toast('백신 이름을 입력해주세요');
+  if (state.editingVaccinationId) {
+    const v = state.vaccinations.find(x => x.id === state.editingVaccinationId);
+    if (v) Object.assign(v, { name, scheduledDate, completedDate, hospital, memo });
+    if (completedDate) autoMilestone(v.kidId, 'vaccine_' + (v.vaccineId || v.id), completedDate, '💉', `${v.name} 완료`);
+  } else {
+    const newV = { id: uid(), kidId: k.id, vaccineId: null, name, scheduledDate, completedDate, hospital, memo };
+    state.vaccinations.push(newV);
+    if (completedDate) autoMilestone(k.id, 'vaccine_' + newV.id, completedDate, '💉', `${name} 완료`);
+  }
+  save(); closeModal('modalVaccine'); renderVaccine();
+  toast('저장되었습니다');
+});
+
+document.getElementById('btnDeleteVaccine').addEventListener('click', () => {
+  if (!state.editingVaccinationId) return;
+  state.vaccinations = state.vaccinations.filter(v => v.id !== state.editingVaccinationId);
+  save(); closeModal('modalVaccine'); renderVaccine();
+  toast('삭제되었습니다');
+});
+
+/* ===== 진료 기록 렌더 ===== */
+function renderVisit() {
+  const k = getKid(); if (!k) return;
+  const list = state.visits.filter(v => v.kidId === k.id)
+    .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  const wrap = document.getElementById('visitList');
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">🏥</div><div class="label">아직 진료 기록이 없어요</div><div class="sub">병원 방문 후 기록을 남겨보세요</div></div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(v => `
+    <div class="card" style="margin-bottom:10px;padding:14px 16px;cursor:pointer;" onclick="openVisitModal('${v.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:600;">${escapeHtml(v.reason || '진료 기록')}</div>
+        <div style="font-size:11.5px;color:var(--text-tertiary);">${v.date || '-'}</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-secondary);margin-bottom:4px;">
+        ${v.hospital ? `🏥 ${escapeHtml(v.hospital)}` : ''}
+        ${v.doctor ? ` · ${escapeHtml(v.doctor)}` : ''}
+      </div>
+      ${v.diagnosis ? `<div style="font-size:12px;color:var(--text);background:#FAFBFC;padding:8px 10px;border-radius:6px;margin-top:6px;">📋 ${escapeHtml(v.diagnosis)}</div>` : ''}
+      ${v.memo ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:6px;">${escapeHtml(v.memo)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+window.openVisitModal = (id) => {
+  state.editingVisitId = id || null;
+  const ex = id ? state.visits.find(v => v.id === id) : null;
+  document.getElementById('visitModalTitle').textContent = ex ? '🏥 진료 기록 수정' : '🏥 진료 기록';
+  document.getElementById('visitDate').value = ex?.date || isoDate(new Date());
+  document.getElementById('visitHospital').value = ex?.hospital || '';
+  document.getElementById('visitDoctor').value = ex?.doctor || '';
+  document.getElementById('visitReason').value = ex?.reason || '';
+  document.getElementById('visitDiagnosis').value = ex?.diagnosis || '';
+  document.getElementById('visitMemo').value = ex?.memo || '';
+  document.getElementById('btnDeleteVisit').style.display = ex ? '' : 'none';
+  showModal('modalVisit');
+};
+
+document.getElementById('btnAddVisit').addEventListener('click', () => openVisitModal());
+document.getElementById('btnSaveVisit').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('visitDate').value;
+  const reason = document.getElementById('visitReason').value.trim();
+  if (!date || !reason) return toast('날짜와 사유를 입력하세요');
+  const data = {
+    kidId: k.id, date,
+    hospital: document.getElementById('visitHospital').value.trim(),
+    doctor: document.getElementById('visitDoctor').value.trim(),
+    reason,
+    diagnosis: document.getElementById('visitDiagnosis').value.trim(),
+    memo: document.getElementById('visitMemo').value.trim(),
+  };
+  if (state.editingVisitId) {
+    const i = state.visits.findIndex(v => v.id === state.editingVisitId);
+    if (i !== -1) state.visits[i] = { ...state.visits[i], ...data };
+  } else {
+    state.visits.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalVisit'); renderVisit();
+  toast('저장되었습니다');
+});
+document.getElementById('btnDeleteVisit').addEventListener('click', () => {
+  if (!state.editingVisitId) return;
+  state.visits = state.visits.filter(v => v.id !== state.editingVisitId);
+  save(); closeModal('modalVisit'); renderVisit();
+  toast('삭제되었습니다');
+});
+
+/* ===== 패턴 차트 (최근 7일) ===== */
+let feedChartObj, sleepChartObj, tempChartObj;
+function renderChart() {
+  const k = getKid(); if (!k) return;
+
+  const now = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    days.push(isoDate(d));
+  }
+  const labels = days.map(d => `${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))}`);
+
+  // 수유 데이터
+  const feedCounts = days.map(date => state.feedings.filter(f => f.kidId === k.id && (f.datetime||'').startsWith(date)).length);
+  const feedAmounts = days.map(date => state.feedings.filter(f => f.kidId === k.id && (f.datetime||'').startsWith(date)).reduce((s,f) => s + (Number(f.amount)||0), 0));
+  const hasFeedData = feedCounts.some(c => c > 0);
+
+  document.getElementById('feedChartEmpty').style.display = hasFeedData ? 'none' : '';
+  document.getElementById('feedChart').style.display = hasFeedData ? '' : 'none';
+
+  if (hasFeedData) {
+    if (feedChartObj) feedChartObj.destroy();
+    feedChartObj = new Chart(document.getElementById('feedChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: '수유 횟수', data: feedCounts, backgroundColor: '#FB923C', borderRadius: 6, yAxisID: 'y' },
+          { label: '총 양 (mL)', data: feedAmounts, backgroundColor: '#FCD34D', borderRadius: 6, yAxisID: 'y1' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { font: { size: 11 }, stepSize: 1 }, title: { display: true, text: '횟수', font: { size: 10 } } },
+          y1: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { font: { size: 11 } }, title: { display: true, text: 'mL', font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // 수면 데이터 (총 수면 시간, 분 단위)
+  const sleepMinutes = days.map(date => {
+    return state.sleeps.filter(s => s.kidId === k.id && (s.startTime||'').startsWith(date)).reduce((sum, s) => {
+      if (!s.startTime || !s.endTime) return sum;
+      const dur = (parseDt(s.endTime) - parseDt(s.startTime)) / 60000;
+      return sum + (dur > 0 ? dur : 0);
+    }, 0);
+  });
+  const sleepHours = sleepMinutes.map(m => +(m/60).toFixed(1));
+  const hasSleepData = sleepHours.some(h => h > 0);
+
+  document.getElementById('sleepChartEmpty').style.display = hasSleepData ? 'none' : '';
+  document.getElementById('sleepChart').style.display = hasSleepData ? '' : 'none';
+
+  if (hasSleepData) {
+    if (sleepChartObj) sleepChartObj.destroy();
+    sleepChartObj = new Chart(document.getElementById('sleepChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '총 수면 시간',
+          data: sleepHours,
+          borderColor: '#6366F1',
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          fill: true, tension: 0.3, pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y}시간` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { beginAtZero: true, ticks: { font: { size: 11 }, callback: v => v + 'h' }, title: { display: true, text: '시간', font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // 체온 데이터
+  const tempPoints = [];
+  state.temperatures.filter(t => t.kidId === k.id).forEach(t => {
+    if (!t.datetime) return;
+    const date = t.datetime.slice(0,10);
+    if (days.includes(date)) {
+      tempPoints.push({ x: t.datetime.replace('T', ' ').slice(0,16), y: Number(t.temp) || 0, raw: t });
+    }
+  });
+  tempPoints.sort((a,b) => a.x.localeCompare(b.x));
+  const hasTempData = tempPoints.length > 0;
+
+  document.getElementById('tempChartEmpty').style.display = hasTempData ? 'none' : '';
+  document.getElementById('tempChart').style.display = hasTempData ? '' : 'none';
+
+  if (hasTempData) {
+    if (tempChartObj) tempChartObj.destroy();
+    tempChartObj = new Chart(document.getElementById('tempChart'), {
+      type: 'line',
+      data: {
+        labels: tempPoints.map(p => p.x.slice(5)),
+        datasets: [{
+          label: '체온',
+          data: tempPoints.map(p => p.y),
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239,68,68,0.1)',
+          pointBackgroundColor: tempPoints.map(p => p.y >= 37.5 ? '#DC2626' : '#10B981'),
+          pointRadius: 5, tension: 0.2, fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y.toFixed(1)}°C` } } },
+        scales: {
+          x: { ticks: { font: { size: 10 }, maxRotation: 45 } },
+          y: { suggestedMin: 35, suggestedMax: 39, ticks: { font: { size: 11 }, callback: v => v + '°C' } }
+        }
+      }
+    });
+  }
+}
+
+/* ===== 임신 기록 (Pregnancy) ===== */
+function renderPregnancy() {
+  const k = getKid(); if (!k) return;
+  const days = daysTilBirth(k.birthDate);
+  document.getElementById('pregDday').textContent = days > 0 ? `D-${days}` : 'D-Day!';
+
+  // 임신 주차 계산 (출산예정일 기준 40주)
+  // 출산까지 280일 = 40주이므로, 임신 주차 = 40 - (남은 일수 / 7)
+  let weeks = '?';
+  if (days >= 0) {
+    const weekNum = Math.max(0, Math.min(40, Math.floor((280 - days) / 7)));
+    weeks = `임신 ${weekNum}주차`;
+  }
+  document.getElementById('pregWeeks').textContent = weeks;
+
+  // 주차별 아기 크기 이모지 변화
+  const weekNum = days >= 0 ? Math.floor((280 - days) / 7) : 40;
+  let emoji = '👶';
+  if (weekNum < 8) emoji = '🌱';
+  else if (weekNum < 16) emoji = '🍓';
+  else if (weekNum < 24) emoji = '🥑';
+  else if (weekNum < 32) emoji = '🍆';
+  else if (weekNum < 40) emoji = '🍉';
+  document.getElementById('pregBabyEmoji').textContent = emoji;
+
+  const list = state.pregnancy.filter(p => p.kidId === k.id)
+    .sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  const wrap = document.getElementById('pregnancyList');
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="big">🤰</div><div class="label">아직 임신 기록이 없어요</div><div class="sub">태교 일기, 태동, 산전검사 등을 기록해보세요</div></div>`;
+    return;
+  }
+  const kindLabels = { diary:'📔 태교 일기', kick:'👶 태동', checkup:'🏥 산전검사', weight:'⚖️ 체중', symptom:'😵 증상', other:'📝 기타' };
+  wrap.innerHTML = list.map(p => `
+    <div class="card" style="margin-bottom:10px;padding:14px 16px;cursor:pointer;" onclick="openPregnancyModal('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:600;">${kindLabels[p.kind] || '📝 기록'}</div>
+        <div style="font-size:11.5px;color:var(--text-tertiary);">
+          ${p.date || ''}${p.weeks ? ` · ${p.weeks}주차` : ''}${p.weight ? ` · ${p.weight}kg` : ''}
+        </div>
+      </div>
+      ${p.text ? `<div style="font-size:12.5px;color:var(--text);line-height:1.5;">${escapeHtml(p.text)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+window.openPregnancyModal = (id) => {
+  state.editingPregnancyId = id || null;
+  const ex = id ? state.pregnancy.find(p => p.id === id) : null;
+  document.getElementById('pregnancyModalTitle').textContent = ex ? '🤰 임신 기록 수정' : '🤰 임신 기록';
+  document.getElementById('pregnancyDate').value = ex?.date || isoDate(new Date());
+  document.getElementById('pregnancyKind').value = ex?.kind || 'diary';
+  document.getElementById('pregnancyWeeks').value = ex?.weeks || '';
+  document.getElementById('pregnancyWeight').value = ex?.weight || '';
+  document.getElementById('pregnancyText').value = ex?.text || '';
+  document.getElementById('btnDeletePregnancy').style.display = ex ? '' : 'none';
+  showModal('modalPregnancy');
+};
+
+document.getElementById('btnAddPregnancy').addEventListener('click', () => openPregnancyModal());
+document.getElementById('btnSavePregnancy').addEventListener('click', () => {
+  const k = getKid(); if (!k) return;
+  const date = document.getElementById('pregnancyDate').value;
+  const text = document.getElementById('pregnancyText').value.trim();
+  if (!date) return toast('날짜를 입력하세요');
+  const data = {
+    kidId: k.id, date,
+    kind: document.getElementById('pregnancyKind').value,
+    weeks: parseInt(document.getElementById('pregnancyWeeks').value) || null,
+    weight: parseFloat(document.getElementById('pregnancyWeight').value) || null,
+    text,
+  };
+  if (state.editingPregnancyId) {
+    const i = state.pregnancy.findIndex(p => p.id === state.editingPregnancyId);
+    if (i !== -1) state.pregnancy[i] = { ...state.pregnancy[i], ...data };
+  } else {
+    state.pregnancy.push({ id: uid(), ...data });
+  }
+  save(); closeModal('modalPregnancy'); renderPregnancy();
+  toast('저장되었습니다');
+});
+document.getElementById('btnDeletePregnancy').addEventListener('click', () => {
+  if (!state.editingPregnancyId) return;
+  state.pregnancy = state.pregnancy.filter(p => p.id !== state.editingPregnancyId);
+  save(); closeModal('modalPregnancy'); renderPregnancy();
+  toast('삭제되었습니다');
+});
+
+load();
+renderAll();
+</script>
+
+</body>
+</html>

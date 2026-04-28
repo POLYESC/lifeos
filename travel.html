@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>여행일지 · 라이프 OS</title>
+<style>
+:root {
+  --primary: #4F7CFF;
+  --travel: #F59E0B;
+  --text: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --border: #E2E8F0;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --expense: #EF4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
+  background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; min-height: 100vh;
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 24px; }
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; }
+.back-link:hover { color: var(--primary); }
+.title-block h1 { font-size: 22px; letter-spacing: -0.02em; margin-bottom: 2px; }
+.title-block .subtitle { font-size: 12px; color: var(--text-tertiary); letter-spacing: 0.05em; }
+
+.banner {
+  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  color: #fff; border-radius: 16px; padding: 22px;
+  margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+}
+.banner-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.banner-stat { text-align: right; }
+.banner-stat-label { font-size: 11px; color: rgba(255,255,255,0.85); }
+.banner-stat-val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 24px 4px 12px; gap: 10px; flex-wrap: wrap; }
+.section-head h2 { font-size: 15px; font-weight: 700; }
+.section-head .count { font-size: 11px; background: var(--bg); color: var(--text-secondary); padding: 3px 9px; border-radius: 8px; font-weight: 600; }
+
+.btn { border: 1px solid var(--border); background: #fff; color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.15s; }
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn.primary:hover { filter: brightness(0.95); }
+.btn.danger { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+.btn.small { padding: 5px 10px; font-size: 11.5px; }
+.btn.travel { background: var(--travel); color: #fff; border-color: var(--travel); }
+.btn.travel:hover { filter: brightness(0.95); }
+
+.trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.trip-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; cursor: pointer; transition: all 0.18s; display: flex; flex-direction: column; gap: 8px; }
+.trip-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(15,23,42,0.06); border-color: #FCD34D; }
+.trip-status { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 600; align-self: flex-start; }
+.trip-status.upcoming { background: #DBEAFE; color: #1E40AF; }
+.trip-status.ongoing { background: #DCFCE7; color: #166534; }
+.trip-status.past { background: #F1F5F9; color: #64748B; }
+.trip-title { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.trip-location { font-size: 12.5px; color: var(--text-secondary); }
+.trip-dates { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+.trip-meta { display: flex; gap: 12px; margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--text-secondary); }
+.trip-meta-item { display: flex; align-items: center; gap: 3px; }
+.trip-meta-item strong { color: var(--text); font-weight: 600; }
+
+.empty { text-align: center; padding: 60px 20px; color: var(--text-tertiary); background: var(--card); border: 1px dashed var(--border); border-radius: 14px; }
+.empty .big { font-size: 36px; margin-bottom: 10px; }
+
+.detail-bg { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 100; overflow-y: auto; }
+.detail-bg.show { display: block; }
+.detail-inner { max-width: 900px; margin: 0 auto; padding: 24px; }
+.detail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+.day-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+.day-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.day-date { font-size: 14px; font-weight: 700; }
+.day-day { font-size: 11px; color: var(--text-tertiary); margin-left: 6px; }
+.day-section { margin-top: 12px; }
+.day-section-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; }
+.day-memo { background: #FAFBFC; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; border: 1px solid var(--border); min-height: 36px; }
+.day-memo:empty::before { content: '메모 없음'; color: var(--text-tertiary); }
+.expense-list { display: flex; flex-direction: column; gap: 6px; }
+.expense-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #FAFBFC; border-radius: 8px; font-size: 13px; border: 1px solid var(--border); }
+.expense-row .label { color: var(--text-secondary); flex: 1; }
+.expense-row .amt { font-weight: 600; color: var(--expense); margin-right: 6px; }
+.btn-icon { background: none; border: none; cursor: pointer; padding: 4px 6px; color: var(--text-tertiary); font-size: 14px; }
+.btn-icon:hover { color: var(--expense); }
+
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.4); z-index: 200; align-items: flex-start; justify-content: center; padding: 40px 20px; }
+.modal-bg.show { display: flex; }
+.modal { background: #fff; border-radius: 14px; padding: 22px; width: 100%; max-width: 460px; max-height: calc(100vh - 80px); overflow-y: auto; }
+.modal h3 { font-size: 17px; margin-bottom: 12px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
+.field input, .field textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--text); }
+.field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--primary); }
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0F172A; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 1000; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .app, .detail-inner { padding: 16px 12px; }
+  .banner { padding: 18px; }
+  .banner-stats { gap: 14px; }
+  .trips-grid { grid-template-columns: 1fr; }
+  .modal { padding: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div>
+      <a href="./index.html" class="back-link">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        홈으로
+      </a>
+      <div class="title-block" style="margin-top:4px;">
+        <h1>✈️ 여행일지</h1>
+        <div class="subtitle">TRAVEL JOURNAL</div>
+      </div>
+    </div>
+    <button class="btn travel" id="btnAddTrip">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      여행 추가
+    </button>
+  </header>
+
+  <div class="banner">
+    <div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:6px;">TRAVEL JOURNAL</div>
+      <div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;" id="bannerTitle">여행을 기록해보세요</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;" id="bannerSub">아직 등록된 여행이 없습니다</div>
+    </div>
+    <div class="banner-stats">
+      <div class="banner-stat"><div class="banner-stat-label">총 여행</div><div class="banner-stat-val" id="statTotal">0</div></div>
+      <div class="banner-stat"><div class="banner-stat-label">총 지출</div><div class="banner-stat-val" id="statTotalCost">₩0</div></div>
+      <div class="banner-stat"><div class="banner-stat-label">총 일수</div><div class="banner-stat-val" id="statTotalDays">0일</div></div>
+    </div>
+  </div>
+
+  <div class="section-head"><h2>🚀 다가오는 여행</h2><span class="count" id="countUpcoming">0개</span></div>
+  <div class="trips-grid" id="upcomingGrid"></div>
+
+  <div class="section-head" id="ongoingSection" style="display:none;"><h2>🌟 진행 중인 여행</h2><span class="count" id="countOngoing">0개</span></div>
+  <div class="trips-grid" id="ongoingGrid"></div>
+
+  <div class="section-head"><h2>📚 다녀온 여행</h2><span class="count" id="countPast">0개</span></div>
+  <div class="trips-grid" id="pastGrid"></div>
+</div>
+
+<div class="detail-bg" id="detailPage">
+  <div class="detail-inner">
+    <div class="detail-head">
+      <button class="back-link" onclick="closeDetail()" style="border:none;background:none;cursor:pointer;font-size:13px;font-family:inherit;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        목록으로
+      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn small" id="btnEditTrip">수정</button>
+        <button class="btn small danger" id="btnDeleteTrip">삭제</button>
+      </div>
+    </div>
+
+    <div class="banner" style="margin-bottom:20px;">
+      <div>
+        <div id="detailStatus" style="font-size:11px;color:rgba(255,255,255,0.9);margin-bottom:6px;"></div>
+        <div id="detailTitle" style="font-size:24px;font-weight:700;letter-spacing:-0.02em;"></div>
+        <div id="detailLocation" style="font-size:13px;color:rgba(255,255,255,0.9);margin-top:4px;"></div>
+        <div id="detailDates" style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:2px;"></div>
+      </div>
+      <div class="banner-stats">
+        <div class="banner-stat"><div class="banner-stat-label">총 일수</div><div class="banner-stat-val" id="detailDays">0일</div></div>
+        <div class="banner-stat"><div class="banner-stat-label">지출</div><div class="banner-stat-val" id="detailCost">₩0</div></div>
+      </div>
+    </div>
+
+    <div id="detailNote" style="background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;padding:14px 16px;border-radius:12px;margin-bottom:16px;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none;"></div>
+
+    <h2 style="font-size:15px;margin-bottom:12px;">📅 일자별 기록</h2>
+    <div id="daysContainer"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalTrip">
+  <div class="modal">
+    <h3 id="tripModalTitle">새 여행 추가</h3>
+    <div class="field"><label>여행 이름</label><input id="tripTitle" placeholder="예: 제주도 가족여행"></div>
+    <div class="field"><label>장소</label><input id="tripLocation" placeholder="예: 제주, 한국"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="field"><label>시작일</label><input type="date" id="tripStart"></div>
+      <div class="field"><label>종료일</label><input type="date" id="tripEnd"></div>
+    </div>
+    <div class="field"><label>전체 메모 (선택)</label><textarea id="tripNote" placeholder="여행 전체 계획, 같이 가는 사람 등"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal('modalTrip')">취소</button>
+      <button class="btn primary" id="btnSaveTrip">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalDayMemo">
+  <div class="modal">
+    <h3 id="dayMemoTitle">메모 수정</h3>
+    <div class="field"><label>그날의 기록</label><textarea id="dayMemoText" placeholder="이날 무엇을 했나요? 인상 깊었던 점은?" style="min-height:140px;"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal('modalDayMemo')">취소</button>
+      <button class="btn primary" id="btnSaveDayMemo">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalExpense">
+  <div class="modal">
+    <h3 id="expenseTitle">지출 추가</h3>
+    <div class="field"><label>항목</label><input id="expenseLabel" placeholder="예: 항공권, 숙소, 식사"></div>
+    <div class="field"><label>금액 (원)</label><input id="expenseAmount" placeholder="0" inputmode="numeric"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal('modalExpense')">취소</button>
+      <button class="btn primary" id="btnSaveExpense">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'lifeos-travel-v1';
+let state = { trips: [] };
+let activeTripId = null;
+let editingTripId = null;
+let editingDayDate = null;
+let expenseDate = null;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+    if (!state.trips) state.trips = [];
+  } catch(e) { state = { trips: [] }; }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+const fmt = (n) => '₩' + new Intl.NumberFormat('ko-KR').format(Math.round(Math.abs(n||0)));
+const parseNum = (s) => Number(String(s||'').replace(/[^\d.-]/g, '')) || 0;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const days = ['일','월','화','수','목','금','토'];
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+window.closeModal = closeModal;
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function tripStatus(trip) {
+  const today = isoDate(new Date());
+  if (trip.endDate && trip.endDate < today) return 'past';
+  if (trip.startDate && trip.startDate > today) return 'upcoming';
+  return 'ongoing';
+}
+function tripDuration(trip) {
+  if (!trip.startDate || !trip.endDate) return 0;
+  return Math.floor((new Date(trip.endDate) - new Date(trip.startDate)) / 86400000) + 1;
+}
+function tripTotalCost(trip) {
+  let total = 0;
+  (trip.days || []).forEach(d => { (d.expenses || []).forEach(e => { total += Number(e.amount) || 0; }); });
+  return total;
+}
+function buildDateRange(s, e) {
+  if (!s || !e) return [];
+  const arr = [];
+  let cur = new Date(s);
+  const end = new Date(e);
+  while (cur <= end) { arr.push(isoDate(cur)); cur.setDate(cur.getDate() + 1); }
+  return arr;
+}
+function ensureDays(trip) {
+  if (!trip.days) trip.days = [];
+  buildDateRange(trip.startDate, trip.endDate).forEach(date => {
+    if (!trip.days.find(d => d.date === date)) trip.days.push({ date, memo: '', expenses: [] });
+  });
+  trip.days.sort((a,b) => a.date.localeCompare(b.date));
+}
+
+function renderAll() { renderBanner(); renderTripLists(); }
+
+function renderBanner() {
+  const trips = state.trips;
+  document.getElementById('statTotal').textContent = trips.length + '개';
+  let totalCost = 0, totalDays = 0;
+  trips.forEach(t => { totalCost += tripTotalCost(t); totalDays += tripDuration(t); });
+  document.getElementById('statTotalCost').textContent = fmt(totalCost);
+  document.getElementById('statTotalDays').textContent = totalDays + '일';
+  if (trips.length > 0) {
+    document.getElementById('bannerTitle').textContent = `${trips.length}개의 여행을 기록 중`;
+    const today = isoDate(new Date());
+    const upcoming = trips.filter(t => t.startDate > today).sort((a,b) => a.startDate.localeCompare(b.startDate))[0];
+    if (upcoming) {
+      const daysLeft = Math.ceil((new Date(upcoming.startDate) - new Date(today)) / 86400000);
+      document.getElementById('bannerSub').textContent = `다음 여행: ${upcoming.title} · D-${daysLeft}`;
+    } else {
+      document.getElementById('bannerSub').textContent = '예정된 여행이 없습니다';
+    }
+  }
+}
+
+function renderTripLists() {
+  const today = isoDate(new Date());
+  const upcoming = state.trips.filter(t => t.startDate > today).sort((a,b) => a.startDate.localeCompare(b.startDate));
+  const ongoing = state.trips.filter(t => tripStatus(t) === 'ongoing');
+  const past = state.trips.filter(t => t.endDate < today).sort((a,b) => b.endDate.localeCompare(a.endDate));
+
+  document.getElementById('countUpcoming').textContent = upcoming.length + '개';
+  document.getElementById('countOngoing').textContent = ongoing.length + '개';
+  document.getElementById('countPast').textContent = past.length + '개';
+  document.getElementById('ongoingSection').style.display = ongoing.length > 0 ? 'flex' : 'none';
+
+  document.getElementById('upcomingGrid').innerHTML = upcoming.length > 0
+    ? upcoming.map(renderTripCard).join('')
+    : `<div class="empty"><div class="big">🚀</div>아직 예정된 여행이 없어요</div>`;
+  document.getElementById('ongoingGrid').innerHTML = ongoing.map(renderTripCard).join('');
+  document.getElementById('pastGrid').innerHTML = past.length > 0
+    ? past.map(renderTripCard).join('')
+    : `<div class="empty"><div class="big">📚</div>아직 다녀온 여행 기록이 없어요</div>`;
+}
+
+function renderTripCard(trip) {
+  const status = tripStatus(trip);
+  const statusLabel = { upcoming: '예정', ongoing: '진행 중', past: '완료' }[status];
+  const dur = tripDuration(trip);
+  const cost = tripTotalCost(trip);
+  return `<div class="trip-card" onclick="openDetail('${trip.id}')">
+    <span class="trip-status ${status}">${statusLabel}</span>
+    <div class="trip-title">${escapeHtml(trip.title)}</div>
+    ${trip.location ? `<div class="trip-location">📍 ${escapeHtml(trip.location)}</div>` : ''}
+    <div class="trip-dates">${trip.startDate} ~ ${trip.endDate}</div>
+    <div class="trip-meta">
+      <div class="trip-meta-item">📅 <strong>${dur}일</strong></div>
+      ${cost > 0 ? `<div class="trip-meta-item">💰 <strong>${fmt(cost)}</strong></div>` : ''}
+    </div>
+  </div>`;
+}
+
+window.openDetail = function(id) {
+  activeTripId = id;
+  const trip = state.trips.find(t => t.id === id);
+  if (!trip) return;
+  ensureDays(trip);
+  saveState();
+  renderDetail();
+  document.getElementById('detailPage').classList.add('show');
+  window.scrollTo(0, 0);
+};
+window.closeDetail = function() {
+  activeTripId = null;
+  document.getElementById('detailPage').classList.remove('show');
+};
+
+function renderDetail() {
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  const status = tripStatus(trip);
+  document.getElementById('detailStatus').textContent = { upcoming: 'UPCOMING', ongoing: 'ONGOING', past: 'PAST' }[status];
+  document.getElementById('detailTitle').textContent = trip.title;
+  document.getElementById('detailLocation').textContent = trip.location ? '📍 ' + trip.location : '';
+  document.getElementById('detailDates').textContent = `${trip.startDate} ~ ${trip.endDate}`;
+  document.getElementById('detailDays').textContent = tripDuration(trip) + '일';
+  document.getElementById('detailCost').textContent = fmt(tripTotalCost(trip));
+  const noteEl = document.getElementById('detailNote');
+  if (trip.note) { noteEl.style.display = ''; noteEl.textContent = trip.note; } else { noteEl.style.display = 'none'; }
+
+  const container = document.getElementById('daysContainer');
+  if (!trip.days || trip.days.length === 0) {
+    container.innerHTML = `<div class="empty">날짜를 설정하면 일자별 카드가 자동 생성됩니다</div>`;
+    return;
+  }
+  container.innerHTML = trip.days.map((d, idx) => {
+    const dt = new Date(d.date);
+    const expenses = d.expenses || [];
+    const dayCost = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return `<div class="day-card">
+      <div class="day-head">
+        <div class="day-date">Day ${idx+1} · ${d.date} <span class="day-day">(${days[dt.getDay()]})</span></div>
+        ${dayCost > 0 ? `<div style="font-size:12px;color:var(--expense);font-weight:600;">${fmt(dayCost)}</div>` : ''}
+      </div>
+      <div class="day-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="day-section-label">📝 메모</div>
+          <button class="btn small" onclick="editDayMemo('${d.date}')">${d.memo ? '수정' : '추가'}</button>
+        </div>
+        <div class="day-memo">${escapeHtml(d.memo || '')}</div>
+      </div>
+      <div class="day-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="day-section-label">💰 지출</div>
+          <button class="btn small" onclick="addExpense('${d.date}')">+ 추가</button>
+        </div>
+        <div class="expense-list">
+          ${expenses.length === 0 ? '<div style="font-size:12px;color:var(--text-tertiary);padding:6px 4px;">지출 항목이 없습니다</div>' :
+            expenses.map(e => `<div class="expense-row">
+              <span class="label">${escapeHtml(e.label)}</span>
+              <span class="amt">${fmt(e.amount)}</span>
+              <button class="btn-icon" onclick="deleteExpense('${d.date}','${e.id}')" title="삭제">×</button>
+            </div>`).join('')
+          }
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btnAddTrip').addEventListener('click', () => {
+  editingTripId = null;
+  document.getElementById('tripModalTitle').textContent = '새 여행 추가';
+  ['tripTitle','tripLocation','tripStart','tripEnd','tripNote'].forEach(id => document.getElementById(id).value = '');
+  showModal('modalTrip');
+});
+
+document.getElementById('btnEditTrip').addEventListener('click', () => {
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  editingTripId = trip.id;
+  document.getElementById('tripModalTitle').textContent = '여행 수정';
+  document.getElementById('tripTitle').value = trip.title;
+  document.getElementById('tripLocation').value = trip.location || '';
+  document.getElementById('tripStart').value = trip.startDate;
+  document.getElementById('tripEnd').value = trip.endDate;
+  document.getElementById('tripNote').value = trip.note || '';
+  showModal('modalTrip');
+});
+
+document.getElementById('btnSaveTrip').addEventListener('click', () => {
+  const title = document.getElementById('tripTitle').value.trim();
+  const location = document.getElementById('tripLocation').value.trim();
+  const startDate = document.getElementById('tripStart').value;
+  const endDate = document.getElementById('tripEnd').value;
+  const note = document.getElementById('tripNote').value.trim();
+  if (!title) return toast('여행 이름을 입력해주세요');
+  if (!startDate || !endDate) return toast('시작일과 종료일을 모두 선택해주세요');
+  if (startDate > endDate) return toast('종료일이 시작일보다 빠릅니다');
+
+  if (editingTripId) {
+    const trip = state.trips.find(t => t.id === editingTripId);
+    if (trip) {
+      Object.assign(trip, { title, location, startDate, endDate, note });
+      ensureDays(trip);
+    }
+  } else {
+    const trip = { id: uid(), title, location, startDate, endDate, note, days: [] };
+    ensureDays(trip);
+    state.trips.push(trip);
+  }
+  saveState();
+  closeModal('modalTrip');
+  renderAll();
+  if (activeTripId) renderDetail();
+  toast(editingTripId ? '수정되었습니다' : '여행이 추가되었습니다');
+});
+
+document.getElementById('btnDeleteTrip').addEventListener('click', () => {
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  if (!confirm(`"${trip.title}" 여행을 삭제하시겠어요? 모든 일자별 기록도 함께 삭제됩니다.`)) return;
+  state.trips = state.trips.filter(t => t.id !== activeTripId);
+  saveState();
+  closeDetail();
+  renderAll();
+  toast('삭제되었습니다');
+});
+
+window.editDayMemo = function(date) {
+  editingDayDate = date;
+  const trip = state.trips.find(t => t.id === activeTripId);
+  const day = trip?.days?.find(d => d.date === date);
+  document.getElementById('dayMemoTitle').textContent = `${date} 메모`;
+  document.getElementById('dayMemoText').value = day?.memo || '';
+  showModal('modalDayMemo');
+};
+
+document.getElementById('btnSaveDayMemo').addEventListener('click', () => {
+  const text = document.getElementById('dayMemoText').value;
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  const day = trip.days.find(d => d.date === editingDayDate);
+  if (day) day.memo = text;
+  saveState();
+  closeModal('modalDayMemo');
+  renderDetail();
+  toast('메모가 저장되었습니다');
+});
+
+window.addExpense = function(date) {
+  expenseDate = date;
+  document.getElementById('expenseTitle').textContent = `${date} 지출 추가`;
+  document.getElementById('expenseLabel').value = '';
+  document.getElementById('expenseAmount').value = '';
+  showModal('modalExpense');
+};
+
+document.getElementById('btnSaveExpense').addEventListener('click', () => {
+  const label = document.getElementById('expenseLabel').value.trim();
+  const amount = parseNum(document.getElementById('expenseAmount').value);
+  if (!label) return toast('항목을 입력해주세요');
+  if (amount <= 0) return toast('금액을 입력해주세요');
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  const day = trip.days.find(d => d.date === expenseDate);
+  if (!day) return;
+  if (!day.expenses) day.expenses = [];
+  day.expenses.push({ id: uid(), label, amount });
+  saveState();
+  closeModal('modalExpense');
+  renderDetail();
+  toast('지출이 추가되었습니다');
+});
+
+window.deleteExpense = function(date, expId) {
+  const trip = state.trips.find(t => t.id === activeTripId);
+  if (!trip) return;
+  const day = trip.days.find(d => d.date === date);
+  if (!day) return;
+  day.expenses = (day.expenses || []).filter(e => e.id !== expId);
+  saveState();
+  renderDetail();
+};
+
+document.getElementById('expenseAmount').addEventListener('input', (e) => {
+  const v = parseNum(e.target.value);
+  e.target.value = v ? v.toLocaleString('ko-KR') : '';
+});
+
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', (e) => { if (e.target === bg) bg.classList.remove('show'); });
+});
+
+loadState();
+renderAll();
+</script>
+</body>
+</html>
