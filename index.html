@@ -3705,14 +3705,15 @@ async function enableFCMNotifications() {
     return false;
   }
   
-  // 4. firebase-messaging-sw.js 등록 확인
+  // 4. 통합 service-worker.js 사용 (FCM 처리도 여기서 함)
   let fcmSwReg;
   try {
-    fcmSwReg = await navigator.serviceWorker.getRegistration('firebase-messaging-sw.js') 
-            || await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    fcmSwReg = await navigator.serviceWorker.getRegistration('./service-worker.js')
+            || await navigator.serviceWorker.getRegistration('service-worker.js')
+            || swReg;
   } catch(e) {
-    console.error('[FCM] firebase-messaging-sw.js 등록 실패:', e);
-    showToast('FCM SW 등록 실패: ' + e.message);
+    console.error('[FCM] SW 가져오기 실패:', e);
+    showToast('SW 가져오기 실패: ' + e.message);
     return false;
   }
   
@@ -3963,7 +3964,9 @@ window.addEventListener('load', async () => {
       let familyCode = LifeOSSync.getFamilyId && LifeOSSync.getFamilyId();
       if (!familyCode) return;
       
-      const fcmSwReg = await navigator.serviceWorker.getRegistration('firebase-messaging-sw.js');
+      const fcmSwReg = await navigator.serviceWorker.getRegistration('./service-worker.js')
+                    || await navigator.serviceWorker.getRegistration('service-worker.js')
+                    || await navigator.serviceWorker.ready;
       if (!fcmSwReg) return;
       
       const messaging = initFCM();
