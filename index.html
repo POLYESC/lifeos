@@ -1420,6 +1420,7 @@ body {
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <script src="lifeos-sync.js"></script>
 </head>
 <body>
@@ -1787,6 +1788,16 @@ body {
       <label>메모 (선택)</label>
       <textarea id="eventNotes" placeholder="추가 메모"></textarea>
     </div>
+    <div class="field" style="background:#FAFBFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0;">
+        <input type="checkbox" id="eventNotifyToggle" checked style="width:16px;height:16px;cursor:pointer;">
+        <span style="font-weight:500;">🔔 이 일정 알림 받기</span>
+      </label>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;line-height:1.5;">
+        • 시간 있는 일정: <strong>1일 전 저녁</strong> + <strong>시작 1시간 전</strong><br>
+        • 하루종일 일정: <strong>1일 전 저녁</strong> + <strong>당일 아침</strong>
+      </div>
+    </div>
     <div class="actions">
       <button class="btn danger actions-left" id="eventDeleteBtn" style="display:none;">삭제</button>
       <button class="btn" id="eventCancelBtn">취소</button>
@@ -1803,6 +1814,59 @@ body {
     <div class="subcat-grid" id="subcatGrid"></div>
     <div class="actions">
       <button class="btn" onclick="closeSubcatModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🔔 알림 설정 모달 -->
+<div class="ai-modal-bg" id="notifSettingsModal">
+  <div class="settings-modal">
+    <h3>🔔 알림 설정</h3>
+    <div class="desc">
+      📱 <strong>백그라운드 푸시 알림</strong>을 켜면 라이프OS 닫혀있어도 알림이 와요.<br>
+      ⏰ 일정마다 <strong>2번씩 알림</strong>이 자동으로 발송됩니다.
+    </div>
+
+    <div class="field" style="background:#FAFBFC;border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">백그라운드 푸시 알림</div>
+          <div id="notifStatusText" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">상태 확인 중...</div>
+        </div>
+        <button class="btn primary" id="notifEnableBtn" style="white-space:nowrap;padding:8px 14px;font-size:13px;">알림 켜기</button>
+      </div>
+      <div id="notifTokenInfo" style="font-size:11px;color:var(--text-tertiary);margin-top:6px;display:none;"></div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div style="font-weight:600;font-size:14px;margin-bottom:8px;">⏰ 알림 시간 설정</div>
+      <div class="field-row">
+        <div class="field">
+          <label>저녁 알림 시간 <small style="color:var(--text-tertiary);">(1일 전)</small></label>
+          <input type="time" id="notifEveningTime" value="21:00">
+        </div>
+        <div class="field">
+          <label>아침 알림 시간 <small style="color:var(--text-tertiary);">(하루종일 일정)</small></label>
+          <input type="time" id="notifMorningTime" value="08:00">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.5;">
+        💡 <strong>시간 있는 일정</strong>: 1일 전 저녁시간 + 시작 1시간 전<br>
+        💡 <strong>하루종일 일정</strong>: 1일 전 저녁시간 + 당일 아침시간
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:10px 12px;background:#FAFBFC;border:1px dashed var(--border);border-radius:8px;">
+      <button class="btn" id="notifTestBtn" style="width:100%;">🧪 테스트 알림 보내기</button>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;text-align:center;">
+        실제 푸시 알림이 잘 오는지 확인할 수 있어요
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="notifDisableBtn" style="display:none;color:#EF4444;">알림 끄기</button>
+      <button class="btn" onclick="closeNotifSettingsModal()">닫기</button>
+      <button class="btn primary" id="notifSaveSettingsBtn">저장</button>
     </div>
   </div>
 </div>
@@ -3191,6 +3255,7 @@ function openEventModal(eventToEdit) {
     document.getElementById('eventDate').value = eventToEdit.date;
     document.getElementById('eventTime').value = eventToEdit.time || '';
     document.getElementById('eventNotes').value = eventToEdit.notes || '';
+    document.getElementById('eventNotifyToggle').checked = eventToEdit.notifyEnabled !== false;
     calState.selectedIcon = eventToEdit.icon || '📌';
     document.getElementById('eventDeleteBtn').style.display = '';
   } else {
@@ -3200,6 +3265,7 @@ function openEventModal(eventToEdit) {
     document.getElementById('eventDate').value = calState.selectedDate;
     document.getElementById('eventTime').value = '';
     document.getElementById('eventNotes').value = '';
+    document.getElementById('eventNotifyToggle').checked = true;
     calState.selectedIcon = '📌';
     document.getElementById('eventDeleteBtn').style.display = 'none';
   }
@@ -3242,6 +3308,7 @@ document.getElementById('eventSaveBtn').addEventListener('click', () => {
     notes: document.getElementById('eventNotes').value.trim(),
     icon: calState.selectedIcon,
     source: 'manual',
+    notifyEnabled: document.getElementById('eventNotifyToggle').checked,
   };
 
   let events = loadManualEvents();
@@ -3487,16 +3554,429 @@ function updateNotifBtnState() {
     btn.disabled = true;
     return;
   }
-  if (Notification.permission === 'granted') {
+  const settings = (typeof loadNotifSettings === 'function') ? loadNotifSettings() : { enabled: false };
+  if (Notification.permission === 'granted' && settings.enabled) {
     btn.textContent = '🔔 켜짐';
     btn.classList.add('on');
+  } else if (Notification.permission === 'granted') {
+    btn.textContent = '🔔 알림';
+    btn.classList.remove('on');
   } else {
     btn.textContent = '🔔 알림';
     btn.classList.remove('on');
   }
 }
 
-document.getElementById('notifBtn').addEventListener('click', requestNotificationPermission);
+// 🔔 알림 버튼 클릭 → 알림 설정 모달 열기 (기존: 권한만 요청)
+document.getElementById('notifBtn').addEventListener('click', openNotifSettingsModal);
+
+
+// ============================
+// 🔔 FCM 백그라운드 푸시 알림
+// ============================
+const VAPID_KEY = 'BN2G8XiWI0daU8HLmZza0_rfoaVUWCYsFnG4c8h86VRxlmfTyYiW1Inza5Sms1U7p5gAErVOhvpnmy-XTNxAucg';
+const NOTIF_SETTINGS_KEY = 'lifeos-notif-settings-v1';
+const FCM_DEVICE_ID_KEY = 'lifeos-fcm-device-id';
+
+let fcmMessaging = null;
+let currentFCMToken = null;
+
+// 기기 고유 ID (이 기기에서 처음 생성 후 재사용)
+function getOrCreateDeviceId() {
+  let id = localStorage.getItem(FCM_DEVICE_ID_KEY);
+  if (!id) {
+    id = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 8);
+    localStorage.setItem(FCM_DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
+// 기기 라벨 (UA 기반 간단 표시)
+function getDeviceLabel() {
+  const ua = navigator.userAgent;
+  let device = '알 수 없는 기기';
+  if (/iPhone/i.test(ua)) device = 'iPhone';
+  else if (/iPad/i.test(ua)) device = 'iPad';
+  else if (/Android/i.test(ua)) device = 'Android';
+  else if (/Mac/i.test(ua)) device = 'Mac';
+  else if (/Windows/i.test(ua)) device = 'Windows';
+  else if (/Linux/i.test(ua)) device = 'Linux';
+  let browser = '';
+  if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = ' Chrome';
+  else if (/Edg/i.test(ua)) browser = ' Edge';
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = ' Safari';
+  else if (/Firefox/i.test(ua)) browser = ' Firefox';
+  return device + browser;
+}
+
+// 알림 설정 불러오기/저장
+function loadNotifSettings() {
+  try {
+    const raw = localStorage.getItem(NOTIF_SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : { eveningTime: '21:00', morningTime: '08:00', enabled: false };
+  } catch(e) {
+    return { eveningTime: '21:00', morningTime: '08:00', enabled: false };
+  }
+}
+function saveNotifSettings(settings) {
+  localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// Firebase Messaging 초기화 (가족 동기화 연결되어 있을 때만)
+function initFCM() {
+  if (fcmMessaging) return fcmMessaging;
+  if (!window.firebase || !firebase.messaging) {
+    console.warn('[FCM] Firebase Messaging SDK 미로드');
+    return null;
+  }
+  if (!firebase.apps || firebase.apps.length === 0) {
+    console.warn('[FCM] Firebase 앱 미초기화 (가족 동기화 설정 먼저 필요)');
+    return null;
+  }
+  try {
+    fcmMessaging = firebase.messaging();
+    
+    // 포그라운드(앱 열려있을 때) 메시지 수신
+    fcmMessaging.onMessage((payload) => {
+      console.log('[FCM] 포그라운드 메시지:', payload);
+      const notif = payload.notification || {};
+      const data = payload.data || {};
+      
+      // 페이지 열려있을 때는 시스템 알림 + 토스트 둘 다
+      if (Notification.permission === 'granted') {
+        try {
+          new Notification(notif.title || '🔔 라이프 OS', {
+            body: notif.body || data.body || '',
+            icon: 'icon-192.png',
+            tag: data.eventId || 'lifeos-fg',
+          });
+        } catch(e) {}
+      }
+      showToast('🔔 ' + (notif.title || notif.body || '알림 도착'));
+    });
+    
+    return fcmMessaging;
+  } catch(e) {
+    console.error('[FCM] 초기화 실패:', e);
+    return null;
+  }
+}
+
+// FCM 토큰 발급 + Firestore 저장
+async function enableFCMNotifications() {
+  // 1. 가족 동기화 연결 확인
+  let familyCode = null;
+  try {
+    familyCode = LifeOSSync.getFamilyId && LifeOSSync.getFamilyId();
+  } catch(e) {}
+  if (!familyCode) {
+    showToast('☁️ 가족 동기화 설정 먼저 완료해주세요');
+    return false;
+  }
+  
+  // 2. 알림 권한 요청
+  if (!('Notification' in window)) {
+    showToast('이 브라우저는 알림을 지원하지 않아요');
+    return false;
+  }
+  let permission = Notification.permission;
+  if (permission === 'default') {
+    permission = await Notification.requestPermission();
+  }
+  if (permission !== 'granted') {
+    showToast('알림 권한이 거부되었어요. 브라우저 설정에서 허용해주세요');
+    return false;
+  }
+  
+  // 3. Service Worker 준비 대기
+  let swReg;
+  try {
+    swReg = await navigator.serviceWorker.ready;
+  } catch(e) {
+    showToast('Service Worker 준비 실패');
+    return false;
+  }
+  
+  // 4. firebase-messaging-sw.js 등록 확인
+  let fcmSwReg;
+  try {
+    fcmSwReg = await navigator.serviceWorker.getRegistration('firebase-messaging-sw.js') 
+            || await navigator.serviceWorker.register('firebase-messaging-sw.js');
+  } catch(e) {
+    console.error('[FCM] firebase-messaging-sw.js 등록 실패:', e);
+    showToast('FCM SW 등록 실패: ' + e.message);
+    return false;
+  }
+  
+  // 5. FCM 초기화
+  const messaging = initFCM();
+  if (!messaging) {
+    showToast('Firebase Messaging 초기화 실패');
+    return false;
+  }
+  
+  // 6. 토큰 발급
+  let token;
+  try {
+    token = await messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: fcmSwReg,
+    });
+  } catch(e) {
+    console.error('[FCM] 토큰 발급 실패:', e);
+    showToast('토큰 발급 실패: ' + e.message);
+    return false;
+  }
+  if (!token) {
+    showToast('토큰을 받지 못했어요');
+    return false;
+  }
+  
+  currentFCMToken = token;
+  
+  // 7. Firestore에 토큰 저장
+  try {
+    const db = firebase.firestore();
+    const deviceId = getOrCreateDeviceId();
+    const settings = loadNotifSettings();
+    
+    await db.collection('fcm_subscriptions').doc(`${familyCode}__${deviceId}`).set({
+      familyCode,
+      deviceId,
+      deviceLabel: getDeviceLabel(),
+      token,
+      settings: {
+        enabled: true,
+        eveningTime: settings.eveningTime || '21:00',
+        morningTime: settings.morningTime || '08:00',
+      },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    
+    settings.enabled = true;
+    saveNotifSettings(settings);
+    
+    showToast('🔔 백그라운드 알림이 켜졌어요!');
+    updateNotifBtnState();
+    refreshNotifSettingsModal();
+    return true;
+  } catch(e) {
+    console.error('[FCM] Firestore 저장 실패:', e);
+    showToast('토큰 저장 실패: ' + e.message);
+    return false;
+  }
+}
+
+// FCM 알림 끄기
+async function disableFCMNotifications() {
+  let familyCode = null;
+  try { familyCode = LifeOSSync.getFamilyId && LifeOSSync.getFamilyId(); } catch(e) {}
+  
+  // Firestore에서 제거
+  if (familyCode) {
+    try {
+      const db = firebase.firestore();
+      const deviceId = getOrCreateDeviceId();
+      await db.collection('fcm_subscriptions').doc(`${familyCode}__${deviceId}`).delete();
+    } catch(e) {
+      console.warn('[FCM] Firestore 삭제 실패:', e);
+    }
+  }
+  
+  // FCM 토큰 무효화
+  if (fcmMessaging && currentFCMToken) {
+    try {
+      await fcmMessaging.deleteToken();
+    } catch(e) {
+      console.warn('[FCM] 토큰 삭제 실패:', e);
+    }
+  }
+  currentFCMToken = null;
+  
+  const settings = loadNotifSettings();
+  settings.enabled = false;
+  saveNotifSettings(settings);
+  
+  showToast('알림이 꺼졌어요');
+  updateNotifBtnState();
+  refreshNotifSettingsModal();
+}
+
+// 알림 설정 모달 열기
+function openNotifSettingsModal() {
+  const modal = document.getElementById('notifSettingsModal');
+  modal.classList.add('show');
+  
+  // 시간 입력값 채우기
+  const settings = loadNotifSettings();
+  document.getElementById('notifEveningTime').value = settings.eveningTime || '21:00';
+  document.getElementById('notifMorningTime').value = settings.morningTime || '08:00';
+  
+  refreshNotifSettingsModal();
+}
+
+function closeNotifSettingsModal() {
+  document.getElementById('notifSettingsModal').classList.remove('show');
+}
+
+// 모달 상태 갱신 (권한 상태에 따라 버튼 표시 변경)
+function refreshNotifSettingsModal() {
+  const statusText = document.getElementById('notifStatusText');
+  const enableBtn = document.getElementById('notifEnableBtn');
+  const disableBtn = document.getElementById('notifDisableBtn');
+  const tokenInfo = document.getElementById('notifTokenInfo');
+  
+  if (!('Notification' in window)) {
+    statusText.textContent = '❌ 이 브라우저는 알림을 지원하지 않아요';
+    enableBtn.style.display = 'none';
+    return;
+  }
+  
+  const settings = loadNotifSettings();
+  const perm = Notification.permission;
+  
+  if (perm === 'granted' && settings.enabled) {
+    statusText.innerHTML = '✅ <strong style="color:#16A34A;">활성화됨</strong> · 백그라운드 알림 OK';
+    enableBtn.style.display = 'none';
+    disableBtn.style.display = '';
+    if (currentFCMToken) {
+      tokenInfo.style.display = 'block';
+      tokenInfo.textContent = `🔑 기기: ${getDeviceLabel()}`;
+    }
+  } else if (perm === 'granted' && !settings.enabled) {
+    statusText.textContent = '⚠️ 권한은 있지만 푸시 미등록 상태';
+    enableBtn.textContent = '알림 켜기';
+    enableBtn.style.display = '';
+    disableBtn.style.display = 'none';
+    tokenInfo.style.display = 'none';
+  } else if (perm === 'denied') {
+    statusText.innerHTML = '🚫 알림 차단됨 · 브라우저 설정에서 허용해주세요';
+    enableBtn.style.display = 'none';
+    disableBtn.style.display = 'none';
+    tokenInfo.style.display = 'none';
+  } else {
+    statusText.textContent = '⚪ 아직 활성화되지 않았어요';
+    enableBtn.textContent = '알림 켜기';
+    enableBtn.style.display = '';
+    disableBtn.style.display = 'none';
+    tokenInfo.style.display = 'none';
+  }
+}
+
+// 알림 켜기 버튼
+document.getElementById('notifEnableBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('notifEnableBtn');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  await enableFCMNotifications();
+  btn.disabled = false;
+  btn.textContent = '알림 켜기';
+});
+
+// 알림 끄기 버튼
+document.getElementById('notifDisableBtn').addEventListener('click', async () => {
+  if (!confirm('백그라운드 알림을 끌까요?\n\n일정 알림이 더 이상 오지 않게 됩니다.')) return;
+  await disableFCMNotifications();
+});
+
+// 설정 저장 (시간 변경)
+document.getElementById('notifSaveSettingsBtn').addEventListener('click', async () => {
+  const settings = loadNotifSettings();
+  settings.eveningTime = document.getElementById('notifEveningTime').value || '21:00';
+  settings.morningTime = document.getElementById('notifMorningTime').value || '08:00';
+  saveNotifSettings(settings);
+  
+  // Firestore에도 반영
+  if (settings.enabled && currentFCMToken) {
+    try {
+      let familyCode = LifeOSSync.getFamilyId && LifeOSSync.getFamilyId();
+      if (familyCode) {
+        const db = firebase.firestore();
+        const deviceId = getOrCreateDeviceId();
+        await db.collection('fcm_subscriptions').doc(`${familyCode}__${deviceId}`).update({
+          'settings.eveningTime': settings.eveningTime,
+          'settings.morningTime': settings.morningTime,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    } catch(e) {
+      console.warn('[FCM] 설정 동기화 실패:', e);
+    }
+  }
+  
+  showToast('💾 알림 설정이 저장되었어요');
+  closeNotifSettingsModal();
+});
+
+// 테스트 알림 보내기 (로컬 알림 — 실제 FCM 푸시 흐름 테스트는 Functions 배포 후)
+document.getElementById('notifTestBtn').addEventListener('click', () => {
+  if (Notification.permission !== 'granted') {
+    showToast('먼저 알림을 켜주세요');
+    return;
+  }
+  try {
+    new Notification('🧪 테스트 알림', {
+      body: '라이프OS 알림이 잘 작동해요! 백그라운드 푸시는 서버 연동 후 가능합니다.',
+      icon: 'icon-192.png',
+      tag: 'lifeos-test',
+    });
+    showToast('🔔 테스트 알림 발송됨');
+  } catch(e) {
+    showToast('알림 발송 실패: ' + e.message);
+  }
+});
+
+// 모달 배경 클릭 시 닫기
+document.getElementById('notifSettingsModal').addEventListener('click', (e) => {
+  if (e.target.id === 'notifSettingsModal') closeNotifSettingsModal();
+});
+
+// 페이지 로드 시 — 이전에 등록되어 있던 FCM 토큰 자동 복구
+window.addEventListener('load', async () => {
+  // 가족 동기화 연결 후에만 시도
+  setTimeout(async () => {
+    const settings = loadNotifSettings();
+    if (!settings.enabled) return;
+    if (Notification.permission !== 'granted') return;
+    
+    try {
+      let familyCode = LifeOSSync.getFamilyId && LifeOSSync.getFamilyId();
+      if (!familyCode) return;
+      
+      const fcmSwReg = await navigator.serviceWorker.getRegistration('firebase-messaging-sw.js');
+      if (!fcmSwReg) return;
+      
+      const messaging = initFCM();
+      if (!messaging) return;
+      
+      const token = await messaging.getToken({
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: fcmSwReg,
+      });
+      if (token) {
+        currentFCMToken = token;
+        // 토큰이 갱신되었을 수 있으니 Firestore에 다시 저장
+        const db = firebase.firestore();
+        const deviceId = getOrCreateDeviceId();
+        await db.collection('fcm_subscriptions').doc(`${familyCode}__${deviceId}`).set({
+          familyCode,
+          deviceId,
+          deviceLabel: getDeviceLabel(),
+          token,
+          settings: {
+            enabled: true,
+            eveningTime: settings.eveningTime || '21:00',
+            morningTime: settings.morningTime || '08:00',
+          },
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log('[FCM] 토큰 자동 복구 완료');
+      }
+    } catch(e) {
+      console.warn('[FCM] 자동 복구 실패:', e);
+    }
+  }, 3000); // 가족 동기화 초기화 후 시도
+});
 
 // 오늘/내일 일정 배너 표시
 function renderNotifBanner() {
