@@ -1114,7 +1114,7 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
     <div class="field"><label>계좌 이름</label>
       <input id="accountName" placeholder="예: KB국민 주거래, 친구에게 빌려준 돈">
     </div>
-    <div class="field"><label>현재 잔액 (원)</label>
+    <div class="field"><label id="accountBalanceLabel">현재 잔액 (원)</label>
       <input id="accountBalance" placeholder="0" inputmode="numeric">
       <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;" id="accountBalanceHint">자산은 +, 부채는 갚아야 할 금액</div>
     </div>
@@ -1133,7 +1133,7 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
     <h3 id="goalModalTitle">목적통장 추가</h3>
     <div class="field"><label>통장 이름</label><input id="goalName" placeholder="예: 여행통장"></div>
     <div class="field"><label>목표 금액 (원)</label><input id="goalTarget" placeholder="0" inputmode="numeric"></div>
-    <div class="field"><label>현재 잔액 (원)</label><input id="goalBalance" placeholder="0" inputmode="numeric"></div>
+    <div class="field"><label id="goalBalanceLabel">현재 잔액 (원)</label><input id="goalBalance" placeholder="0" inputmode="numeric"></div>
     <div class="field"><label>메모 (선택)</label><input id="goalNote" placeholder="예: 2027년 제주도 여행"></div>
     <div class="actions">
       <button class="btn" onclick="closeModal('modalGoal')">취소</button>
@@ -1325,6 +1325,7 @@ let state = {
   filters: { type:'', category:'', method:'', account:'', search:'', period:'month', dateFrom:'', dateTo:'', fixed:'' },
   batch: [],
   migratedTransferToSavingV1: false,  // 한 번만 실행되는 마이그레이션 플래그
+  migratedBalanceByMonthV1: false,  // 자산/목적통장 단일 balance → balanceByMonth 마이그레이션
 };
 
 /* ---------- Helpers ---------- */
@@ -1388,26 +1389,27 @@ function isGoalTxn(t) {
   return t.type === 'saving' && t.mainCat === 's_goal' && t.subCat;
 }
 
-/** Apply a transaction's effect to the linked goal (on save/add) */
+/** Apply a transaction's effect to the linked goal (on save/add).
+ *  잔액은 동적 계산이므로 history만 추가 (applyTxnToAccounts에서 이미 처리하지만 호환성 유지). */
 function applyTxnToGoal(t) {
   if (!isGoalTxn(t)) return;
   const g = findGoal(t.subCat);
   if (!g) return;
-  g.balance = (g.balance || 0) + t.amount;
   g.history = g.history || [];
-  g.history.push({
-    id: uid(), date: t.date, amount: t.amount,
-    memo: t.memo || `${g.name} 입금`,
-    txnId: t.id, kind: 'deposit',
-  });
+  if (!g.history.some(h => h.txnId === t.id)) {
+    g.history.push({
+      id: uid(), date: t.date, amount: t.amount,
+      memo: t.memo || `${g.name} 입금`,
+      txnId: t.id, kind: 'deposit',
+    });
+  }
 }
 
-/** Reverse a transaction's effect on the linked goal (on delete/edit) */
+/** Reverse a transaction's effect on the linked goal (on delete/edit). */
 function reverseTxnFromGoal(t) {
   if (!isGoalTxn(t)) return;
   const g = findGoal(t.subCat);
   if (!g) return;
-  g.balance = Math.max(0, (g.balance || 0) - t.amount);
   g.history = (g.history || []).filter(h => h.txnId !== t.id);
 }
 
@@ -1427,6 +1429,7 @@ async function saveData() {
     transactions: state.transactions,
     budgetsByMonth: state.budgetsByMonth,
     migratedTransferToSavingV1: state.migratedTransferToSavingV1,
+    migratedBalanceByMonthV1: state.migratedBalanceByMonthV1,
   }));
 }
 async function loadData() {
@@ -1447,6 +1450,7 @@ async function loadData() {
     if (p.transactions) state.transactions = p.transactions;
     if (p.budgetsByMonth) state.budgetsByMonth = p.budgetsByMonth;
     if (typeof p.migratedTransferToSavingV1 === 'boolean') state.migratedTransferToSavingV1 = p.migratedTransferToSavingV1;
+    if (typeof p.migratedBalanceByMonthV1 === 'boolean') state.migratedBalanceByMonthV1 = p.migratedBalanceByMonthV1;
 
     // 마이그레이션: 기존 walletBalance(단일값) → walletBalanceByMonth (가장 빠른 거래의 월에 할당)
     if (state.walletBalance > 0 && Object.keys(state.walletBalanceByMonth).length === 0) {
@@ -1509,6 +1513,52 @@ async function loadData() {
       });
       state.migratedTransferToSavingV1 = true;
       if (tConv > 0) console.log(`[gagebu] ${tConv}건의 이체 거래를 저축으로 마이그레이션 완료`);
+    }
+
+    // 마이그레이션 v3: 자산/목적통장의 단일 balance → balanceByMonth로 분배
+    // - balanceByMonth가 비어있고 balance가 있으면, 그 자산/목적통장에 영향 주는 가장 빠른 거래 월에
+    //   "시작 잔액 = 현재 balance - 그 시점부터 모든 거래의 net delta"로 박아둠
+    // - 거래가 없는 경우 viewMonth(또는 현재 시스템 월)에 그냥 박아둠
+    if (!state.migratedBalanceByMonthV1) {
+      const nowKey = monthKey(state.viewYear, state.viewMonth);
+      state.accounts.forEach(acc => {
+        if (acc.balanceByMonth && Object.keys(acc.balanceByMonth).length > 0) return;
+        if (!acc.balance) return;
+        // 이 자산에 영향 주는 거래
+        const relevant = state.transactions.filter(t =>
+          (t.type === 'saving' && t.account === acc.id && t.mainCat !== 's_goal') ||
+          (t.type === 'transfer' && (t.fromAccount === acc.id || t.toAccount === acc.id))
+        );
+        acc.balanceByMonth = {};
+        if (relevant.length === 0) {
+          acc.balanceByMonth[nowKey] = acc.balance;
+          return;
+        }
+        const sorted = [...relevant].sort((a,b) => a.date.localeCompare(b.date));
+        const earliestKey = sorted[0].date.slice(0, 7);
+        const netDelta = relevant.reduce((s, t) => s + accountDelta(t, acc.id), 0);
+        acc.balanceByMonth[earliestKey] = acc.balance - netDelta;
+      });
+      state.goals.forEach(g => {
+        if (g.balanceByMonth && Object.keys(g.balanceByMonth).length > 0) return;
+        if (!g.balance) return;
+        const relevant = state.transactions.filter(t => goalDelta(t, g.id) !== 0);
+        const withdrawals = (g.history || []).filter(h => h.kind === 'withdraw');
+        g.balanceByMonth = {};
+        if (relevant.length === 0 && withdrawals.length === 0) {
+          g.balanceByMonth[nowKey] = g.balance;
+          return;
+        }
+        // earliestKey 찾기 (거래 + 출금 합쳐서)
+        let candidates = relevant.map(t => t.date).concat(withdrawals.map(h => h.date)).filter(Boolean);
+        candidates.sort();
+        const earliestKey = candidates[0].slice(0, 7);
+        const netDeposit = relevant.reduce((s, t) => s + goalDelta(t, g.id), 0);
+        const netWithdraw = withdrawals.reduce((s, h) => s + Math.abs(Number(h.amount) || 0), 0);
+        g.balanceByMonth[earliestKey] = g.balance - netDeposit + netWithdraw;
+      });
+      state.migratedBalanceByMonthV1 = true;
+      console.log('[gagebu] 자산/목적통장 월별 잔액 마이그레이션 완료');
     }
   } catch(e){}
 }
@@ -1617,9 +1667,129 @@ function availableAsset() {
   return availableAssetBeforeCard() - unsettledCardSpending();
 }
 
-function totalAssets() { return assetAccounts().reduce((s,a) => s + (Number(a.balance)||0), 0); }
-function totalLiabilities() { return liabilityAccounts().reduce((s,a) => s + (Number(a.balance)||0), 0); }
+function totalAssets() { return assetAccounts().reduce((s,a) => s + getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth), 0); }
+function totalLiabilities() { return liabilityAccounts().reduce((s,a) => s + getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth), 0); }
 function netWorth() { return totalAssets() - totalLiabilities(); }
+
+/* ---------- 월별 잔액 (자산/부채) ---------- */
+// 자산 계좌의 특정 월 잔액 조회 — balanceByMonth에서 targetKey 이하의 가장 가까운 키 값.
+// 없으면 acc.balance를 fallback으로 사용 (마이그레이션 호환성).
+/* ---------- 월별 잔액 (자산/부채) ---------- */
+// 거래 t가 자산 계좌 accId에 미치는 영향 (asset이면 +, liability면 반대 부호)
+function accountDelta(t, accId) {
+  const acc = state.accounts.find(a => a.id === accId);
+  if (!acc) return 0;
+  const kind = getAccountType(acc.type)?.kind;
+  const flip = (v) => kind === 'liability' ? -v : v;
+
+  if (t.type === 'saving' && t.account === accId && t.mainCat !== 's_goal') {
+    return flip(t.amount);
+  }
+  if (t.type === 'transfer') {
+    if (t.toAccount === accId) return flip(t.amount);
+    if (t.fromAccount === accId) return flip(-t.amount);
+  }
+  // income/expense는 자산 계좌에 직접 영향 없음 (통장 가용자산 계산식에 반영)
+  return 0;
+}
+
+// 거래 t가 목적통장 goalId에 미치는 영향
+function goalDelta(t, goalId) {
+  if (t.type === 'saving' && t.mainCat === 's_goal' && t.subCat === goalId) {
+    return t.amount;
+  }
+  if (t.type === 'transfer' && t.toAccount === 'goal:' + goalId) {
+    return t.amount;
+  }
+  return 0;
+}
+
+// 자산 잔액 (특정 월 시점) = 가장 가까운 과거의 시작잔액 + 그 시작점 이후 ~ 해당 월 말까지의 거래 누적
+function getAccountBalanceForMonth(accId, year, month) {
+  const acc = state.accounts.find(a => a.id === accId);
+  if (!acc) return 0;
+  const targetKey = monthKey(year, month);
+  const byMonth = acc.balanceByMonth || {};
+  const keys = Object.keys(byMonth).sort();
+  // 가장 가까운 과거의 사용자 입력 시작잔액 키
+  let baseKey = null;
+  let base = Number(acc.balance) || 0;
+  for (const k of keys) {
+    if (k <= targetKey) { baseKey = k; base = Number(byMonth[k]) || 0; }
+    else break;
+  }
+  // baseKey 이후 ~ targetKey 말까지의 거래 누적
+  // baseKey가 있으면 그 월부터 (포함), 없으면 가장 처음부터
+  const startKey = baseKey || '0000-00';
+  let accum = 0;
+  state.transactions.forEach(t => {
+    if (!t.date) return;
+    const k = t.date.slice(0, 7);
+    if (k < startKey) return;
+    if (k > targetKey) return;
+    accum += accountDelta(t, accId);
+  });
+  return base + accum;
+}
+
+// 사용자가 특정 월의 시작잔액을 직접 입력
+function setAccountBalanceForMonth(accId, year, month, value) {
+  const acc = state.accounts.find(a => a.id === accId);
+  if (!acc) return;
+  if (!acc.balanceByMonth) acc.balanceByMonth = {};
+  const key = monthKey(year, month);
+  acc.balanceByMonth[key] = Number(value) || 0;
+  // 호환성: acc.balance는 "현재 시스템 시점 잔액" 캐시로 유지
+  const now = new Date();
+  acc.balance = getAccountBalanceForMonth(accId, now.getFullYear(), now.getMonth());
+}
+
+/* ---------- 월별 잔액 (목적통장) ---------- */
+/* ---------- 월별 잔액 (목적통장) ---------- */
+// 목적통장 잔액 (특정 월 시점) = 가장 가까운 과거의 시작잔액 + 그 시작점 이후 ~ 해당 월 말까지의 거래 누적 - 출금 history 누적
+function getGoalBalanceForMonth(goalId, year, month) {
+  const g = state.goals.find(x => x.id === goalId);
+  if (!g) return 0;
+  const targetKey = monthKey(year, month);
+  const byMonth = g.balanceByMonth || {};
+  const keys = Object.keys(byMonth).sort();
+  let baseKey = null;
+  let base = Number(g.balance) || 0;
+  for (const k of keys) {
+    if (k <= targetKey) { baseKey = k; base = Number(byMonth[k]) || 0; }
+    else break;
+  }
+  const startKey = baseKey || '0000-00';
+  let accum = 0;
+  // 입금 (거래)
+  state.transactions.forEach(t => {
+    if (!t.date) return;
+    const k = t.date.slice(0, 7);
+    if (k < startKey) return;
+    if (k > targetKey) return;
+    accum += goalDelta(t, goalId);
+  });
+  // 출금 (거래 안 만들고 goal.history에만 기록되는 것)
+  (g.history || []).forEach(h => {
+    if (h.kind !== 'withdraw') return;
+    if (!h.date) return;
+    const k = h.date.slice(0, 7);
+    if (k < startKey) return;
+    if (k > targetKey) return;
+    accum -= Math.abs(Number(h.amount) || 0);
+  });
+  return base + accum;
+}
+
+function setGoalBalanceForMonth(goalId, year, month, value) {
+  const g = state.goals.find(x => x.id === goalId);
+  if (!g) return;
+  if (!g.balanceByMonth) g.balanceByMonth = {};
+  const key = monthKey(year, month);
+  g.balanceByMonth[key] = Number(value) || 0;
+  const now = new Date();
+  g.balance = getGoalBalanceForMonth(goalId, now.getFullYear(), now.getMonth());
+}
 
 // 현재 월 키 (YYYY-MM)
 function currentMonthSnapKey() {
@@ -1696,110 +1866,50 @@ function processRecurringTxns() {
 
 /**
  * Apply a transaction's effect on account balances.
- * - expense: account -= amount (자산 감소 OR 부채 증가 if credit)
- * - income:  account += amount
- * - saving:  account -= amount (저축은 출금처럼 처리, 목적통장은 별도)
- * - transfer: from -= amount, to += amount
+ * 잔액은 모두 동적 계산(getAccountBalanceForMonth / getGoalBalanceForMonth)되므로
+ * 거래 자체는 어떤 잔액도 직접 변경하지 않음. 거래 추가/삭제 시 자동으로 잔액이 재계산됨.
+ * 단, 목적통장 history는 거래와 별개로 관리되므로 여기서 push (입금 거래 추적용).
  */
 function applyTxnToAccounts(t) {
-  if (t.type === 'transfer') {
-    const fromIsWallet = t.fromAccount === '__wallet__';
-    const toIsGoal = (t.toAccount || '').startsWith('goal:');
-    const toGoalId = toIsGoal ? t.toAccount.slice(5) : null;
-
-    // 보내는 곳: 통장 또는 자산 계좌
-    if (fromIsWallet) {
-      // 통장 잔액에서는 직접 차감하지 않음. 가용자산 계산식이 transfer를 자동 차감.
-      // (walletBalance는 월초 시작 잔액으로 고정 유지)
-    } else {
-      const from = findAccount(t.fromAccount);
-      if (from) {
-        const fromKind = getAccountType(from.type)?.kind;
-        from.balance = (from.balance||0) + (fromKind === 'liability' ? t.amount : -t.amount);
+  // 목적통장 saving 거래: goal.history에 입금 기록 추가 (잔액은 동적 계산)
+  if (t.type === 'saving' && t.mainCat === 's_goal' && t.subCat) {
+    const g = state.goals.find(x => x.id === t.subCat);
+    if (g) {
+      if (!g.history) g.history = [];
+      // 중복 방지 (txnId로 식별)
+      if (!g.history.some(h => h.txnId === t.id)) {
+        g.history.push({ id: uid(), date: t.date, amount: t.amount, memo: t.memo || '', txnId: t.id, kind: 'deposit' });
       }
-    }
-    // 받는 곳: 자산 계좌, 목적통장, 또는 통장
-    if (toIsGoal) {
-      const goal = state.goals.find(g => g.id === toGoalId);
-      if (goal) {
-        goal.balance = (goal.balance || 0) + t.amount;
-        if (!goal.history) goal.history = [];
-        goal.history.push({ id: uid(), date: t.date, amount: t.amount, type: 'transfer', memo: t.memo || '이체' });
-      }
-    } else if (t.toAccount === '__wallet__') {
-      // 통장으로 이체받기 (드문 케이스): 그 거래 월의 통장 잔액에 추가
-      const tKey = (t.date || '').slice(0, 7);
-      if (tKey) {
-        state.walletBalanceByMonth[tKey] = (Number(state.walletBalanceByMonth[tKey]) || 0) + t.amount;
-      }
-    } else {
-      const to = findAccount(t.toAccount);
-      if (to) {
-        const toKind = getAccountType(to.type)?.kind;
-        to.balance = (to.balance||0) + (toKind === 'liability' ? -t.amount : t.amount);
-      }
-    }
-    return;
-  }
-  // saving 거래: account 필드에 받는 자산 계좌가 지정되어 있으면 잔액 += amount
-  // (목적통장 saving은 applyTxnToGoal에서 별도 처리되므로 여기선 일반 saving만)
-  if (t.type === 'saving' && t.account && t.mainCat !== 's_goal') {
-    const acc = findAccount(t.account);
-    if (acc) {
-      const kind = getAccountType(acc.type)?.kind;
-      acc.balance = (acc.balance || 0) + (kind === 'liability' ? -t.amount : t.amount);
     }
   }
-  // income/expense/saving: walletBalance 변경 없음. 가용 자산 계산식에서 거래액을 빼는 방식.
+  // transfer → goal 거래: 동일 처리 (호환성, 마이그레이션 후엔 거의 없음)
+  if (t.type === 'transfer' && (t.toAccount || '').startsWith('goal:')) {
+    const goalId = t.toAccount.slice(5);
+    const g = state.goals.find(x => x.id === goalId);
+    if (g) {
+      if (!g.history) g.history = [];
+      if (!g.history.some(h => h.txnId === t.id)) {
+        g.history.push({ id: uid(), date: t.date, amount: t.amount, memo: t.memo || '', txnId: t.id, kind: 'deposit' });
+      }
+    }
+  }
 }
 
 function reverseTxnFromAccounts(t) {
-  if (t.type === 'transfer') {
-    const fromIsWallet = t.fromAccount === '__wallet__';
-    const toIsGoal = (t.toAccount || '').startsWith('goal:');
-    const toGoalId = toIsGoal ? t.toAccount.slice(5) : null;
-
-    if (!fromIsWallet) {
-      const from = findAccount(t.fromAccount);
-      if (from) {
-        const fromKind = getAccountType(from.type)?.kind;
-        from.balance = (from.balance||0) - (fromKind === 'liability' ? t.amount : -t.amount);
-      }
-    }
-    if (toIsGoal) {
-      const goal = state.goals.find(g => g.id === toGoalId);
-      if (goal) {
-        goal.balance = (goal.balance || 0) - t.amount;
-        // history에서 해당 항목 제거 시도 (없어도 무관)
-        if (goal.history) {
-          const idx = goal.history.findIndex(h => h.date === t.date && h.amount === t.amount && h.type === 'transfer');
-          if (idx !== -1) goal.history.splice(idx, 1);
-        }
-      }
-    } else if (t.toAccount === '__wallet__') {
-      // 통장으로 이체받기 reverse
-      const tKey = (t.date || '').slice(0, 7);
-      if (tKey && state.walletBalanceByMonth[tKey] != null) {
-        state.walletBalanceByMonth[tKey] = (Number(state.walletBalanceByMonth[tKey]) || 0) - t.amount;
-      }
-    } else {
-      const to = findAccount(t.toAccount);
-      if (to) {
-        const toKind = getAccountType(to.type)?.kind;
-        to.balance = (to.balance||0) - (toKind === 'liability' ? -t.amount : t.amount);
-      }
-    }
-    return;
-  }
-  // saving 거래 원복: 받는 자산 계좌에서 amount 차감
-  if (t.type === 'saving' && t.account && t.mainCat !== 's_goal') {
-    const acc = findAccount(t.account);
-    if (acc) {
-      const kind = getAccountType(acc.type)?.kind;
-      acc.balance = (acc.balance || 0) - (kind === 'liability' ? -t.amount : t.amount);
+  // 목적통장 saving 거래의 history 제거
+  if (t.type === 'saving' && t.mainCat === 's_goal' && t.subCat) {
+    const g = state.goals.find(x => x.id === t.subCat);
+    if (g && g.history) {
+      g.history = g.history.filter(h => h.txnId !== t.id);
     }
   }
-  // 일반 거래는 walletBalance 변경 없음.
+  if (t.type === 'transfer' && (t.toAccount || '').startsWith('goal:')) {
+    const goalId = t.toAccount.slice(5);
+    const g = state.goals.find(x => x.id === goalId);
+    if (g && g.history) {
+      g.history = g.history.filter(h => h.txnId !== t.id);
+    }
+  }
 }
 
 /* ---------- Toast ---------- */
@@ -3424,7 +3534,8 @@ function renderAccountCards(accounts, total, kind) {
   }
   return accounts.map(a => {
     const t = getAccountType(a.type);
-    const pct = total > 0 ? (Math.abs(a.balance) / total) * 100 : 0;
+    const bal = getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth);
+    const pct = total > 0 ? (Math.abs(bal) / total) * 100 : 0;
     const valueColor = kind === 'asset' ? 'var(--income)' : 'var(--expense)';
     return `<div class="card goal-card">
       <div class="flex items-center justify-between mb-3">
@@ -3444,7 +3555,7 @@ function renderAccountCards(accounts, total, kind) {
           </button>
         </div>
       </div>
-      <div class="num" style="font-size:22px;font-weight:700;letter-spacing:-0.03em;color:${valueColor};">${fmt(a.balance)}</div>
+      <div class="num" style="font-size:22px;font-weight:700;letter-spacing:-0.03em;color:${valueColor};">${fmt(bal)}</div>
       <div class="g-bar"><div class="g-fill" style="width:${pct}%;background:${t.color};"></div></div>
       <div class="g-nums num"><span>전체 비중</span><span>${pct.toFixed(1)}%</span></div>
     </div>`;
@@ -3469,11 +3580,18 @@ window.editAccount = (id) => {
   const a = findAccount(id);
   if (!a) return;
   state.editingAccountId = id;
-  document.getElementById('accountModalTitle').textContent = '계좌 수정';
+  document.getElementById('accountModalTitle').textContent = `계좌 수정 (${state.viewYear}년 ${state.viewMonth+1}월 기준)`;
+  document.getElementById('accountBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
   fillAccountTypeOptions();
   document.getElementById('accountType').value = a.type;
   document.getElementById('accountName').value = a.name;
-  document.getElementById('accountBalance').value = a.balance ? a.balance.toLocaleString('ko-KR') : '';
+  // 이 월의 시작 잔액이 명시되어 있으면 그 값, 없으면 동적 계산된 잔액
+  const monthKey_ = monthKey(state.viewYear, state.viewMonth);
+  const explicit = (a.balanceByMonth || {})[monthKey_];
+  const bal = (typeof explicit === 'number')
+    ? explicit
+    : getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth);
+  document.getElementById('accountBalance').value = bal ? bal.toLocaleString('ko-KR') : '';
   document.getElementById('accountNote').value = a.note || '';
   showModal('modalAccount');
 };
@@ -3498,13 +3616,13 @@ window.deleteAccount = (id) => {
 
 
 function renderGoalsBanner() {
-  const totalBalance = state.goals.reduce((s, g) => s + (Number(g.balance) || 0), 0);
+  // viewMonth 기준 모든 목적통장 잔액 합산
+  const totalBalance = state.goals.reduce((s, g) => s + getGoalBalanceForMonth(g.id, state.viewYear, state.viewMonth), 0);
   const totalTarget = state.goals.reduce((s, g) => s + (Number(g.target) || 0), 0);
   const pct = totalTarget > 0 ? (totalBalance / totalTarget) * 100 : 0;
 
-  // 이번 달 입금/출금 합계 (모든 목적통장 history 합산)
-  const now = new Date();
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // viewMonth 입금/출금 합계 (모든 목적통장 history 합산)
+  const monthPrefix = monthKey(state.viewYear, state.viewMonth);
   let inSum = 0, outSum = 0;
   state.goals.forEach(g => {
     (g.history || []).forEach(h => {
@@ -3690,7 +3808,8 @@ function renderGoals() {
     return;
   }
   grid.innerHTML = state.goals.map(g => {
-    const pct = g.target>0 ? Math.min(100, (g.balance/g.target)*100) : 0;
+    const curBalance = getGoalBalanceForMonth(g.id, state.viewYear, state.viewMonth);
+    const pct = g.target>0 ? Math.min(100, (curBalance/g.target)*100) : 0;
     const history = (g.history || []).slice().sort((a,b) => b.date.localeCompare(a.date) || (b.id||'').localeCompare(a.id||''));
     const recentHistory = history.slice(0, 10);
     const totalCount = history.length;
@@ -3704,7 +3823,7 @@ function renderGoals() {
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         </button>
       </div>
-      <div class="num" style="font-size:24px;font-weight:700;letter-spacing:-0.03em;">${fmt(g.balance)}</div>
+      <div class="num" style="font-size:24px;font-weight:700;letter-spacing:-0.03em;">${fmt(curBalance)}</div>
       <div class="g-bar"><div class="g-fill" style="width:${pct}%"></div></div>
       <div class="g-nums num"><span>${pct.toFixed(1)}% 달성</span><span>목표 ${fmt(g.target)}</span></div>
       <div class="g-actions">
@@ -3751,10 +3870,17 @@ window.editGoal = (id) => {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
   editingGoalId = id;
-  document.getElementById('goalModalTitle').textContent = '목적통장 수정';
+  document.getElementById('goalModalTitle').textContent = `목적통장 수정 (${state.viewYear}년 ${state.viewMonth+1}월 기준)`;
+  document.getElementById('goalBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
   document.getElementById('goalName').value = g.name;
   document.getElementById('goalTarget').value = g.target;
-  document.getElementById('goalBalance').value = g.balance;
+  // 이 월의 시작 잔액이 명시되어 있으면 그 값, 없으면 동적 계산
+  const monthKey_ = monthKey(state.viewYear, state.viewMonth);
+  const explicit = (g.balanceByMonth || {})[monthKey_];
+  const bal = (typeof explicit === 'number')
+    ? explicit
+    : getGoalBalanceForMonth(g.id, state.viewYear, state.viewMonth);
+  document.getElementById('goalBalance').value = bal || '';
   document.getElementById('goalNote').value = g.note || '';
   showModal('modalGoal');
 };
@@ -3801,8 +3927,6 @@ window.deleteGoalHistory = (goalId, historyId) => {
   const h = (g.history || []).find(x => x.id === historyId);
   if (!h) return;
   confirmModal('내역 삭제', `이 ${h.amount>=0?'입금':'출금'} 내역을 삭제하시겠어요? 통장 잔액이 조정됩니다.`, async () => {
-    // Reverse balance
-    g.balance = Math.max(0, g.balance - h.amount);
     g.history = g.history.filter(x => x.id !== historyId);
     // If linked to a transaction, remove that too
     if (h.txnId) {
@@ -4500,6 +4624,7 @@ document.getElementById('btnSaveWallet').addEventListener('click', async () => {
 document.getElementById('btnAddAccount').addEventListener('click', () => {
   state.editingAccountId = null;
   document.getElementById('accountModalTitle').textContent = '계좌 추가';
+  document.getElementById('accountBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
   fillAccountTypeOptions();
   document.getElementById('accountType').value = 'savings';
   document.getElementById('accountName').value = '';
@@ -4515,9 +4640,17 @@ document.getElementById('btnSaveAccount').addEventListener('click', async () => 
   if (!name) return toast('계좌 이름을 입력해주세요');
   if (state.editingAccountId) {
     const a = findAccount(state.editingAccountId);
-    if (a) { a.type=type; a.name=name; a.balance=balance; a.note=note; }
+    if (a) {
+      a.type = type;
+      a.name = name;
+      a.note = note;
+      // 현재 보고 있는 viewMonth의 시작 잔액으로 저장 (그 월에만 영향, 다른 월은 자동 재계산)
+      setAccountBalanceForMonth(state.editingAccountId, state.viewYear, state.viewMonth, balance);
+    }
   } else {
-    state.accounts.push({ id: uid(), type, name, balance, note, archived:false });
+    const newId = uid();
+    state.accounts.push({ id: newId, type, name, note, archived:false, balance: 0, balanceByMonth: {} });
+    setAccountBalanceForMonth(newId, state.viewYear, state.viewMonth, balance);
   }
   // 자산 변동 시 이번 달 스냅샷 자동 저장 (덮어쓰기)
   takeNetWorthSnapshot();
@@ -4610,6 +4743,7 @@ document.getElementById('btnDeleteRecurring').addEventListener('click', () => {
 document.getElementById('btnAddGoal').addEventListener('click', () => {
   editingGoalId = null;
   document.getElementById('goalModalTitle').textContent = '목적통장 추가';
+  document.getElementById('goalBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
   document.getElementById('goalName').value = '';
   document.getElementById('goalTarget').value = '';
   document.getElementById('goalBalance').value = '';
@@ -4624,9 +4758,14 @@ document.getElementById('btnSaveGoal').addEventListener('click', async () => {
   if (!name) return toast('통장 이름을 입력해주세요');
   if (editingGoalId) {
     const g = state.goals.find(x => x.id === editingGoalId);
-    if (g) { g.name=name; g.target=target; g.balance=balance; g.note=note; }
+    if (g) {
+      g.name = name; g.target = target; g.note = note;
+      setGoalBalanceForMonth(editingGoalId, state.viewYear, state.viewMonth, balance);
+    }
   } else {
-    state.goals.push({ id: uid(), name, target, balance, note, history:[] });
+    const newId = uid();
+    state.goals.push({ id: newId, name, target, balance: 0, note, history:[], balanceByMonth: {} });
+    setGoalBalanceForMonth(newId, state.viewYear, state.viewMonth, balance);
   }
   syncGoalsToSavingCategory();
   await saveData();
@@ -4647,7 +4786,8 @@ async function goalTxnSubmit() {
   g.history = g.history || [];
 
   if (goalTxnMode === 'deposit') {
-    // 입금 = 통장에서 목적통장으로 저축 (거래내역에 saving + s_goal로 기록 + 가용자산에서 차감)
+    // 입금 = 통장에서 목적통장으로 저축 (거래내역에 saving + s_goal로 기록)
+    // 잔액은 동적 계산되므로 g.balance 직접 변경 안 함. history는 입금 추적용으로 push.
     const txnId = uid();
     const txn = {
       id: txnId, date,
@@ -4661,12 +4801,12 @@ async function goalTxnSubmit() {
       fixed: false,
     };
     state.transactions.unshift(txn);
-    g.balance = (g.balance || 0) + amount;
     g.history.push({ id: uid(), date, amount, memo, txnId, kind: 'deposit' });
   } else {
-    // 출금(사용): 통장 내역에만 기록, 거래내역에는 기록하지 않음
-    if ((g.balance || 0) < amount) return toast(`잔액이 부족합니다 · 현재 ${fmt(g.balance)}`);
-    g.balance = g.balance - amount;
+    // 출금(사용): 거래내역에는 기록하지 않고 목적통장 내역에만 기록
+    // 출금 시점의 잔액으로 검증
+    const curBal = getGoalBalanceForMonth(g.id, parseInt(date.slice(0,4)), parseInt(date.slice(5,7))-1);
+    if (curBal < amount) return toast(`잔액이 부족합니다 · 현재 ${fmt(curBal)}`);
     g.history.push({ id: uid(), date, amount: -amount, memo, kind: 'withdraw' });
   }
 
@@ -4682,8 +4822,9 @@ document.getElementById('btnLoadSample').addEventListener('click', () => {
     // Seed default account balances if they're empty/zero
     const seedBalances = { a_main: 8000000, a_cash: 200000, a_save: 30000000, a_card1: 0 };
     state.accounts.forEach(a => {
-      if ((a.balance || 0) === 0 && seedBalances[a.id] != null) {
-        a.balance = seedBalances[a.id];
+      const curBal = getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth);
+      if (curBal === 0 && seedBalances[a.id] != null) {
+        setAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth, seedBalances[a.id]);
       }
     });
 
