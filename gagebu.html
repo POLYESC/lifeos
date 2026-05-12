@@ -30,6 +30,8 @@ html,body{font-family:'Noto Sans KR','Inter',-apple-system,sans-serif;background
 
 /* Header */
 header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:12.5px;font-weight:500;padding:6px 10px 6px 6px;border-radius:8px;margin-bottom:6px;transition:all 0.15s;}
+.back-link:hover{color:var(--primary);background:var(--primary-soft);}
 .title-block h1{font-size:24px;font-weight:800;letter-spacing:-0.03em;}
 .title-block .subtitle{font-size:12px;color:var(--text-secondary);margin-top:2px;letter-spacing:0.02em;}
 .month-nav{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;box-shadow:var(--shadow-sm);}
@@ -284,6 +286,10 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
 
 <header>
   <div class="title-block">
+    <a href="./index.html" class="back-link">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      홈으로
+    </a>
     <h1>우리집 가계부</h1>
     <div class="subtitle">수입 · 지출 · 저축을 체계적으로 관리하세요</div>
   </div>
@@ -397,6 +403,40 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
       <h3>수입·지출·저축 비교</h3>
       <div class="chart-sub">INCOME · EXPENSE · SAVING</div>
       <div class="chart-wrap"><canvas id="compareChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 고정 vs 변동 지출 분석 -->
+  <div class="summary-grid" style="grid-template-columns:repeat(2,1fr);margin-top:4px;">
+    <div class="card stat" style="border-left:3px solid #378ADD;">
+      <div class="label">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 0l-3-3m3 3l3-3M5 12h14M5 18h14"/></svg>
+        📌 고정지출
+      </div>
+      <div class="value num" style="color:#0C447C" id="statFixed">₩0</div>
+      <div class="sub" id="statFixedSub">0건 · 매달 거의 일정</div>
+    </div>
+    <div class="card stat" style="border-left:3px solid #D85A30;">
+      <div class="label">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg>
+        변동지출
+      </div>
+      <div class="value num" style="color:#993C1D" id="statVariable">₩0</div>
+      <div class="sub" id="statVariableSub">0건 · 절약 여지 ↓</div>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="margin-bottom:20px;">
+    <div class="card chart-card">
+      <h3>이번 달 지출 구성 (고정 vs 변동)</h3>
+      <div class="chart-sub">FIXED vs VARIABLE</div>
+      <div class="chart-wrap"><canvas id="fixedVarDonut"></canvas></div>
+      <div id="fixedVarHint" style="font-size:11.5px;color:var(--text-tertiary);text-align:center;margin-top:8px;line-height:1.5;"></div>
+    </div>
+    <div class="card chart-card">
+      <h3>최근 6개월 추이 · 고정 vs 변동</h3>
+      <div class="chart-sub">6-MONTH TREND</div>
+      <div class="chart-wrap"><canvas id="fixedVarTrend"></canvas></div>
     </div>
   </div>
 
@@ -580,6 +620,7 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
             <th style="width:130px;">결제수단</th>
             <th style="min-width:180px;">메모</th>
             <th class="right" style="width:140px;">금액</th>
+            <th style="width:70px;" title="지출 거래에서 고정/변동 선택. 빈칸이면 카테고리 기본값 사용">고정</th>
             <th style="width:44px;"></th>
           </tr>
         </thead>
@@ -594,6 +635,11 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
       <select id="fType"><option value="">모든 유형</option><option value="income">수입</option><option value="expense">지출</option><option value="transfer">이체</option></select>
       <select id="fCategory"><option value="">모든 분류</option></select>
       <select id="fMethod"><option value="">모든 결제수단</option></select>
+      <select id="fFixed">
+        <option value="">고정/변동 전체</option>
+        <option value="fixed">📌 고정지출만</option>
+        <option value="variable">변동지출만</option>
+      </select>
       <input type="text" id="fSearch" placeholder="메모 / 카테고리 / #태그 검색..." style="min-width:200px;">
       <span class="section-sub" style="margin-left:auto;" id="txnCountLabel">0건</span>
     </div>
@@ -1127,6 +1173,21 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
       <div class="field"><label>소분류</label><select id="eSubCat"></select></div>
       <div class="field"><label>계좌</label><select id="eAccount"></select></div>
       <div class="field"><label>결제수단</label><select id="eMethod"></select></div>
+      <div class="field" id="eFixedField">
+        <label>고정/변동 <span style="font-size:11px;color:var(--text-tertiary);font-weight:400;">(지출만)</span></label>
+        <div style="display:flex;gap:6px;">
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;">
+            <input type="radio" name="eFixedRadio" value="auto" style="margin:0;"> <span>⚙ 자동 추론</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;">
+            <input type="radio" name="eFixedRadio" value="fixed" style="margin:0;"> <span>📌 고정</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;">
+            <input type="radio" name="eFixedRadio" value="variable" style="margin:0;"> <span>변동</span>
+          </label>
+        </div>
+        <div id="eFixedHint" style="font-size:11px;color:var(--text-tertiary);margin-top:6px;"></div>
+      </div>
     </div>
     <div id="eTransferFields" style="display:none;">
       <div class="field"><label>보내는 계좌</label><select id="eFromAccount"></select></div>
@@ -1175,22 +1236,22 @@ const DEFAULT_CATEGORIES = {
     { id:'s_goal',   name:'목적통장', color:'#9775FA', subs:[] },
   ],
   expense: [
-    { id:'e_home',   name:'주거',     color:'#FFA94D', subs:[{id:'e_h_1',name:'관리비'},{id:'e_h_2',name:'도시가스'},{id:'e_h_3',name:'수도세'},{id:'e_h_4',name:'전기세'},{id:'e_h_5',name:'월세'}] },
+    { id:'e_home',   name:'주거',     color:'#FFA94D', defaultFixed:true,  subs:[{id:'e_h_1',name:'관리비'},{id:'e_h_2',name:'도시가스'},{id:'e_h_3',name:'수도세'},{id:'e_h_4',name:'전기세'},{id:'e_h_5',name:'월세'}] },
     { id:'e_food',   name:'식비',     color:'#FF6B6B', subs:[{id:'e_f_1',name:'식자재'},{id:'e_f_2',name:'외식'},{id:'e_f_3',name:'카페/류'},{id:'e_f_4',name:'간식'}] },
     { id:'e_life',   name:'생활',     color:'#4DABF7', subs:[{id:'e_l_1',name:'생필품'},{id:'e_l_2',name:'가전'},{id:'e_l_3',name:'인테리어'},{id:'e_l_4',name:'화장품'},{id:'e_l_5',name:'기타'}] },
     { id:'e_beauty', name:'꾸밈비',   color:'#E64980', subs:[{id:'e_b_1',name:'의류/잡화'},{id:'e_b_2',name:'미용'}] },
     { id:'e_health', name:'건강',     color:'#20C997', subs:[{id:'e_he_1',name:'병원'},{id:'e_he_2',name:'건강보조'},{id:'e_he_3',name:'예방/검진'}] },
-    { id:'e_self',   name:'자기계발', color:'#9775FA', subs:[{id:'e_s_1',name:'스터디/수강'},{id:'e_s_2',name:'운동'},{id:'e_s_3',name:'도서'},{id:'e_s_4',name:'구독/렌탈'}] },
-    { id:'e_car',    name:'차량',     color:'#748FFC', subs:[{id:'e_c_1',name:'주유'},{id:'e_c_2',name:'주차/통행료'},{id:'e_c_3',name:'대리운전'},{id:'e_c_4',name:'택시'},{id:'e_c_5',name:'소모품/수리'},{id:'e_c_6',name:'보험/세금'}] },
-    { id:'e_kid',    name:'자녀',     color:'#FCC419', subs:[{id:'e_k_1',name:'육아용품'},{id:'e_k_2',name:'놀이/활동'},{id:'e_k_3',name:'교육/도서'},{id:'e_k_4',name:'꾸밈/의류'},{id:'e_k_5',name:'기관/돌봄'}] },
+    { id:'e_self',   name:'자기계발', color:'#9775FA', subs:[{id:'e_s_1',name:'스터디/수강'},{id:'e_s_2',name:'운동'},{id:'e_s_3',name:'도서'},{id:'e_s_4',name:'구독/렌탈',defaultFixed:true}] },
+    { id:'e_car',    name:'차량',     color:'#748FFC', subs:[{id:'e_c_1',name:'주유'},{id:'e_c_2',name:'주차/통행료'},{id:'e_c_3',name:'대리운전'},{id:'e_c_4',name:'택시'},{id:'e_c_5',name:'소모품/수리'},{id:'e_c_6',name:'보험/세금',defaultFixed:true}] },
+    { id:'e_kid',    name:'자녀',     color:'#FCC419', subs:[{id:'e_k_1',name:'육아용품'},{id:'e_k_2',name:'놀이/활동'},{id:'e_k_3',name:'교육/도서'},{id:'e_k_4',name:'꾸밈/의류'},{id:'e_k_5',name:'기관/돌봄',defaultFixed:true}] },
     { id:'e_pet',    name:'반려동물', color:'#A0C4FF', subs:[{id:'e_p_1',name:'반려용품'},{id:'e_p_2',name:'동물병원'},{id:'e_p_3',name:'애견미용'}] },
     { id:'e_trip',   name:'여행',     color:'#22B8CF', subs:[{id:'e_t_1',name:'국내'},{id:'e_t_2',name:'해외'}] },
-    { id:'e_culture',name:'문화생활', color:'#845EF7', subs:[{id:'e_cu_1',name:'공연/전시'},{id:'e_cu_2',name:'OTT'},{id:'e_cu_3',name:'기타'}] },
+    { id:'e_culture',name:'문화생활', color:'#845EF7', subs:[{id:'e_cu_1',name:'공연/전시'},{id:'e_cu_2',name:'OTT',defaultFixed:true},{id:'e_cu_3',name:'기타'}] },
     { id:'e_event',  name:'경조사',   color:'#FF8787', subs:[{id:'e_e_1',name:'가족/친척'},{id:'e_e_2',name:'지인/동료'}] },
     { id:'e_money',  name:'용돈',     color:'#FFD43B', subs:[{id:'e_m_h',name:'남편용돈'},{id:'e_m_w',name:'아내용돈'}] },
-    { id:'e_ins',    name:'보험',     color:'#74C0FC', subs:[{id:'e_i_1',name:'남편종합'},{id:'e_i_2',name:'남편실비'},{id:'e_i_3',name:'아내종합'},{id:'e_i_4',name:'아내실비'},{id:'e_i_5',name:'자녀종합'}] },
-    { id:'e_comm',   name:'통신비',   color:'#63E6BE', subs:[{id:'e_co_1',name:'휴대폰'},{id:'e_co_2',name:'인터넷/TV'},{id:'e_co_3',name:'수리/Acc'},{id:'e_co_4',name:'구독'}] },
-    { id:'e_etc',    name:'기타',     color:'#868E96', subs:[{id:'e_et_1',name:'세금'},{id:'e_et_2',name:'회비'},{id:'e_et_3',name:'서비스'}] },
+    { id:'e_ins',    name:'보험',     color:'#74C0FC', defaultFixed:true,  subs:[{id:'e_i_1',name:'남편종합'},{id:'e_i_2',name:'남편실비'},{id:'e_i_3',name:'아내종합'},{id:'e_i_4',name:'아내실비'},{id:'e_i_5',name:'자녀종합'}] },
+    { id:'e_comm',   name:'통신비',   color:'#63E6BE', defaultFixed:true,  subs:[{id:'e_co_1',name:'휴대폰'},{id:'e_co_2',name:'인터넷/TV'},{id:'e_co_3',name:'수리/Acc',defaultFixed:false},{id:'e_co_4',name:'구독'}] },
+    { id:'e_etc',    name:'기타',     color:'#868E96', subs:[{id:'e_et_1',name:'세금',defaultFixed:true},{id:'e_et_2',name:'회비',defaultFixed:true},{id:'e_et_3',name:'서비스'}] },
   ],
 };
 
@@ -1262,7 +1323,7 @@ let state = {
   goals: JSON.parse(JSON.stringify(DEFAULT_GOALS)),
   transactions: [],
   budgetsByMonth: {},
-  filters: { type:'', category:'', method:'', account:'', search:'', period:'month', dateFrom:'', dateTo:'' },
+  filters: { type:'', category:'', method:'', account:'', search:'', period:'month', dateFrom:'', dateTo:'', fixed:'' },
   batch: [],
 };
 
@@ -1283,6 +1344,27 @@ function findMainCatByAnyType(id) {
   return null;
 }
 function getPaymentMethod(id) { return state.paymentMethods.find(m => m.id === id); }
+
+// 고정/변동 추론: 소분류에 명시되어 있으면 그걸 우선, 없으면 대분류 기본값, 둘 다 없으면 false(변동)
+// 지출이 아닌 거래는 항상 변동(false) — 수입·저축·이체는 고정/변동 개념 없음
+function inferFixed(type, mainCatId, subCatId) {
+  if (type !== 'expense') return false;
+  const main = findMainCat('expense', mainCatId);
+  if (!main) return false;
+  if (subCatId) {
+    const sub = main.subs?.find(s => s.id === subCatId);
+    if (sub && typeof sub.defaultFixed === 'boolean') return sub.defaultFixed;
+  }
+  return !!main.defaultFixed;
+}
+
+// 거래가 고정지출인지 판단: txn.fixed가 명시되어 있으면 그걸, 없으면 반복거래는 자동 고정, 그 외엔 카테고리 추론
+function isFixedTxn(t) {
+  if (t.type !== 'expense') return false;
+  if (typeof t.fixed === 'boolean') return t.fixed;
+  if (t.recurringId) return true;
+  return inferFixed(t.type, t.mainCat, t.subCat);
+}
 
 function currentMonthTxns() {
   const k = monthKey(state.viewYear, state.viewMonth);
@@ -1374,6 +1456,20 @@ async function loadData() {
       state.walletBalanceByMonth[earliestKey] = state.walletBalance;
       state.walletBalance = 0;  // 더 이상 사용 안 함
     }
+
+    // 마이그레이션: 기존 거래의 fixed 필드 채우기
+    // - 반복거래에서 생성된 거래는 fixed:true
+    // - 그 외에는 카테고리 추론값으로 한 번만 고정 (isFixedTxn이 항상 추론하긴 하지만 명시적으로 박아둬서 사용자가 명시 지정한 것과 구분)
+    // - 단, 기존 데이터 의미를 바꾸지 않기 위해 fixed 필드가 이미 있는 거래는 그대로 둠
+    let migrated = 0;
+    state.transactions.forEach(t => {
+      if (typeof t.fixed === 'boolean') return;  // 이미 있음
+      if (t.type !== 'expense') { t.fixed = false; return; }
+      if (t.recurringId) { t.fixed = true; migrated++; return; }
+      // 평범한 지출은 굳이 박아두지 않고 isFixedTxn의 추론에 맡김 — 사용자가 나중에 카테고리 defaultFixed를 바꾸면
+      // 추론값도 따라서 바뀌어야 자연스럽기 때문. (반복거래만 강제 박아둠)
+    });
+    if (migrated > 0) console.log(`[gagebu] ${migrated}건의 반복거래에 fixed=true 마이그레이션 완료`);
   } catch(e){}
 }
 
@@ -1537,6 +1633,7 @@ function processRecurringTxns() {
         amount: r.amount,
         tags: r.tags ? [...r.tags] : [],
         recurringId: r.id,  // 어느 반복 거래에서 생성됐는지 추적
+        fixed: r.type === 'expense' ? true : false,  // 반복 거래는 무조건 고정지출
       };
       state.transactions.unshift(txn);
       applyTxnToAccounts(txn);
@@ -1730,6 +1827,44 @@ function renderSummary() {
   document.getElementById('statSavingSub').innerHTML = `저축률 ${savingRate.toFixed(1)}% ${mom(saving, pSaving)}`;
   document.getElementById('statNetSub').innerHTML = (net >= 0 ? '흑자' : '적자') + ` ${mom(net, pNet)}`;
 
+  // ----- 고정 vs 변동 지출 분석 (이번 달 / 지난 달 비교) -----
+  const expTxns = txns.filter(t => t.type === 'expense');
+  let fixedSum = 0, varSum = 0, fixedCnt = 0, varCnt = 0;
+  expTxns.forEach(t => {
+    if (isFixedTxn(t)) { fixedSum += t.amount; fixedCnt++; }
+    else { varSum += t.amount; varCnt++; }
+  });
+  const pExpTxns = prevTxns.filter(t => t.type === 'expense');
+  let pFixedSum = 0, pVarSum = 0;
+  pExpTxns.forEach(t => {
+    if (isFixedTxn(t)) pFixedSum += t.amount;
+    else pVarSum += t.amount;
+  });
+  const statFixedEl = document.getElementById('statFixed');
+  const statVarEl = document.getElementById('statVariable');
+  if (statFixedEl) {
+    statFixedEl.textContent = fmt(fixedSum);
+    document.getElementById('statFixedSub').innerHTML = `${fixedCnt}건 ${mom(fixedSum, pFixedSum, true)}`;
+  }
+  if (statVarEl) {
+    statVarEl.textContent = fmt(varSum);
+    document.getElementById('statVariableSub').innerHTML = `${varCnt}건 ${mom(varSum, pVarSum, true)}`;
+  }
+  // 도넛 가이드 문구
+  const hint = document.getElementById('fixedVarHint');
+  if (hint) {
+    if (expense === 0) {
+      hint.textContent = '이번 달 지출 거래가 아직 없어요.';
+    } else {
+      const fixedPct = (fixedSum / expense) * 100;
+      let msg;
+      if (fixedPct > 75) msg = `고정 비율 ${fixedPct.toFixed(0)}% — 좀 높아요. 구독·통신비 점검 추천.`;
+      else if (fixedPct < 40) msg = `고정 비율 ${fixedPct.toFixed(0)}% — 변동성이 커요. 예산 계획이 어려울 수 있어요.`;
+      else msg = `고정 비율 ${fixedPct.toFixed(0)}% — 안정적인 구간이에요.`;
+      hint.textContent = msg;
+    }
+  }
+
   // Available asset banner (통장 잔액 + 수입 - 현금 - 카드 - 이체)
   const wb = walletBalance();
   const lifetimeIncome = totalIncomeSinceWallet();
@@ -1748,7 +1883,7 @@ function renderSummary() {
 }
 
 /* ---------- Charts ---------- */
-let donutChart, compareChart, yearTrendChart, yearCatChart, yearCumulativeChart, netWorthChart, goalsMonthlyChart, goalsCumChart;
+let donutChart, compareChart, yearTrendChart, yearCatChart, yearCumulativeChart, netWorthChart, goalsMonthlyChart, goalsCumChart, fixedVarDonutChart, fixedVarTrendChart;
 
 function renderMethodBreakdown() {
   const wrap = document.getElementById('methodBreakdown');
@@ -1910,6 +2045,108 @@ function barChartOpts() {
   };
 }
 
+/* ---------- 고정 vs 변동 차트들 ---------- */
+function renderFixedVarCharts() {
+  // 1) 이번 달 도넛
+  const expTxns = currentMonthTxns().filter(t => t.type === 'expense');
+  let fixedSum = 0, varSum = 0;
+  expTxns.forEach(t => {
+    if (isFixedTxn(t)) fixedSum += t.amount;
+    else varSum += t.amount;
+  });
+  const donutCtx = document.getElementById('fixedVarDonut');
+  if (fixedVarDonutChart) fixedVarDonutChart.destroy();
+  if (donutCtx) {
+    const isEmpty = (fixedSum + varSum) === 0;
+    fixedVarDonutChart = new Chart(donutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['📌 고정', '변동'],
+        datasets: [{
+          data: isEmpty ? [1, 1] : [fixedSum, varSum],
+          backgroundColor: isEmpty ? ['#E2E8F0', '#F1F5F9'] : ['#378ADD', '#D85A30'],
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 10, boxHeight: 10, padding: 12,
+              font: { family: "'Noto Sans KR'", size: 12 },
+              color: '#475569',
+              usePointStyle: true, pointStyle: 'rect',
+            },
+          },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 8,
+            callbacks: {
+              label: (c) => {
+                if (isEmpty) return ' 데이터 없음';
+                const total = fixedSum + varSum;
+                const pct = ((c.parsed / total) * 100).toFixed(1);
+                return ` ${c.label}: ${fmt(c.parsed)} (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // 2) 최근 6개월 추이 (현재 viewMonth 기준으로 과거 6개월)
+  const months = [];
+  const fixedArr = [];
+  const varArr = [];
+  for (let i = 5; i >= 0; i--) {
+    let m = state.viewMonth - i, y = state.viewYear;
+    while (m < 0) { m += 12; y -= 1; }
+    const k = `${y}-${String(m+1).padStart(2,'0')}`;
+    months.push(`${m+1}월`);
+    let f = 0, v = 0;
+    state.transactions.forEach(t => {
+      if (t.type !== 'expense') return;
+      if (!t.date.startsWith(k)) return;
+      if (isFixedTxn(t)) f += t.amount;
+      else v += t.amount;
+    });
+    fixedArr.push(f);
+    varArr.push(v);
+  }
+  const trendCtx = document.getElementById('fixedVarTrend');
+  if (fixedVarTrendChart) fixedVarTrendChart.destroy();
+  if (trendCtx) {
+    fixedVarTrendChart = new Chart(trendCtx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          { label: '📌 고정', data: fixedArr, backgroundColor: '#378ADD', borderRadius: 4, stack: 's' },
+          { label: '변동', data: varArr, backgroundColor: '#D85A30', borderRadius: 4, stack: 's' },
+        ],
+      },
+      options: {
+        ...barChartOpts(),
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748B' } },
+          y: {
+            stacked: true,
+            grid: { color: '#F1F3F7', drawBorder: false },
+            ticks: {
+              font: { size: 11 }, color: '#94A3B8',
+              callback: (v) => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 10000 ? (v/10000).toFixed(0)+'만' : v,
+            },
+          },
+        },
+      },
+    });
+  }
+}
+
 /* ---------- Budget table on dashboard (supports expense/income/saving) ---------- */
 function renderBudgetTable() {
   const type = state.budgetFilter;  // 'expense' | 'income' | 'saving'
@@ -2035,6 +2272,7 @@ function newBatchRow(base = {}) {
     tags: [],
     memo: '',
     amount: '',
+    fixed: null,  // null = 카테고리에서 자동 추론, true/false = 사용자가 명시적 설정
   };
 }
 
@@ -2125,6 +2363,27 @@ function batchRowHTML(row) {
     ? `<select data-subfield="toAccount">${buildTransferDestOptions(row.toAccount)}</select>`
     : `<select>${subOpts}</select>`;
 
+  // 고정/변동 토글 — 지출에만 표시. row.fixed가 null이면 카테고리에서 추론된 값 표시(점선 테두리)
+  const isFixedCell = (() => {
+    if (!isExpense) {
+      return `<td data-field="fixed"><span style="color:var(--text-tertiary);font-size:11px;">—</span></td>`;
+    }
+    const inferred = inferFixed('expense', row.mainCat, row.subCat);
+    const effective = row.fixed === null || row.fixed === undefined ? inferred : row.fixed;
+    const isAuto = row.fixed === null || row.fixed === undefined;
+    const label = effective ? '고정' : '변동';
+    const bg = effective ? '#E0F2FE' : '#FEF3C7';
+    const fg = effective ? '#075985' : '#92400E';
+    const border = isAuto ? `1px dashed ${effective?'#7DD3FC':'#FCD34D'}` : `1px solid ${effective?'#7DD3FC':'#FCD34D'}`;
+    return `<td data-field="fixed">
+      <button type="button" class="fixed-toggle" data-fixed="${effective?'1':'0'}" data-auto="${isAuto?'1':'0'}"
+              style="background:${bg};color:${fg};border:${border};border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;"
+              title="${isAuto?'카테고리에서 자동 추론된 값 (클릭하면 직접 지정)':'직접 지정한 값 (한 번 더 클릭하면 자동으로 돌아감)'}">
+        ${isAuto?'<span style="opacity:0.7;">⚙</span> ':''}${label}
+      </button>
+    </td>`;
+  })();
+
   return `
     <td data-field="date"><input type="date" value="${row.date}"></td>
     <td data-field="type">
@@ -2139,6 +2398,7 @@ function batchRowHTML(row) {
     <td data-field="method"><select ${isExpense?'':'disabled'}>${methodOpts}</select></td>
     <td data-field="memo"><input type="text" value="${escapeHtml(row.memo||'')}" placeholder="${isTransfer?'이체 메모 (선택)':'메모 (예: 스타벅스)'}"></td>
     <td data-field="amount"><input type="text" value="${amountVal}" placeholder="0" inputmode="numeric"></td>
+    ${isFixedCell}
     <td class="batch-row-delete">
       <button class="icon-btn danger" data-action="delete" title="행 삭제">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -2231,6 +2491,48 @@ function bindBatchRow(tr, row) {
     }
     updateBatchCount();
   });
+
+  // 고정/변동 토글 버튼 (지출에만 존재)
+  const fixedBtn = tr.querySelector('.fixed-toggle');
+  if (fixedBtn) {
+    fixedBtn.addEventListener('click', () => {
+      // 순환: 자동(null) → 강제 고정(true) → 강제 변동(false) → 자동(null) ...
+      if (row.fixed === null || row.fixed === undefined) {
+        // 자동 → 추론된 값의 반대로 강제 지정
+        const inferred = inferFixed('expense', row.mainCat, row.subCat);
+        row.fixed = !inferred;
+      } else if (row.fixed === true) {
+        row.fixed = false;
+      } else {
+        row.fixed = null;  // 자동으로 복귀
+      }
+      refreshFixedCell(tr, row);
+    });
+  }
+}
+
+// 고정 토글 셀만 다시 그리고 새 버튼에 핸들러 바인딩
+function refreshFixedCell(tr, row) {
+  const oldTd = tr.querySelector('td[data-field="fixed"]');
+  if (!oldTd) return;
+  const tempTr = document.createElement('tr');
+  tempTr.innerHTML = batchRowHTML(row);
+  const newTd = tempTr.querySelector('td[data-field="fixed"]');
+  oldTd.replaceWith(newTd);
+  const btn = newTd.querySelector('.fixed-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      if (row.fixed === null || row.fixed === undefined) {
+        const inferred = inferFixed('expense', row.mainCat, row.subCat);
+        row.fixed = !inferred;
+      } else if (row.fixed === true) {
+        row.fixed = false;
+      } else {
+        row.fixed = null;
+      }
+      refreshFixedCell(tr, row);
+    });
+  }
 }
 
 function handleBatchFieldChange(tr, row, field, value) {
@@ -2247,6 +2549,8 @@ function handleBatchFieldChange(tr, row, field, value) {
       row.fromAccount = '';
       row.toAccount = '';
     }
+    // 유형이 바뀌면 고정 지정 초기화 (자동으로)
+    row.fixed = null;
     // Rebuild entire row HTML to reflect new type's structure
     tr.className = `row-type-${row.type}`;
     tr.innerHTML = batchRowHTML(row);
@@ -2258,6 +2562,11 @@ function handleBatchFieldChange(tr, row, field, value) {
     subSel.innerHTML = `<option value="">—</option>` +
       subs.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
     row.subCat = '';
+    // 카테고리 바뀌면 자동 추론 다시 (사용자가 명시 지정 안 한 경우만)
+    if (row.type === 'expense') refreshFixedCell(tr, row);
+  } else if (field === 'subCat') {
+    // 소분류도 추론에 영향 주므로 갱신
+    if (row.type === 'expense') refreshFixedCell(tr, row);
   }
 
   maybeAddTrailingRow();
@@ -2374,6 +2683,12 @@ async function saveAllBatch() {
   let goalTouched = 0;
   valid.forEach(row => {
     const memo = (row.memo || '').trim();
+    // fixed 결정: 사용자가 명시했으면 그 값, 아니면 카테고리에서 추론
+    const fixedValue = (row.type === 'expense')
+      ? (row.fixed === null || row.fixed === undefined
+          ? inferFixed('expense', row.mainCat, row.subCat)
+          : row.fixed)
+      : false;
     const txn = {
       id: uid(),
       date: row.date,
@@ -2388,6 +2703,7 @@ async function saveAllBatch() {
       tags: extractTagsFromMemo(memo),
       memo,
       amount: parseNum(row.amount),
+      fixed: fixedValue,
     };
     state.transactions.unshift(txn);
     // Apply to account balance
@@ -2443,6 +2759,12 @@ function renderTransactions() {
   if (category) txns = txns.filter(t => t.mainCat === category);
   if (method) txns = txns.filter(t => t.method === method);
   if (account) txns = txns.filter(t => t.account === account || t.fromAccount === account || t.toAccount === account);
+  // 고정/변동 필터 — 지출 거래에만 의미가 있음
+  if (state.filters.fixed === 'fixed') {
+    txns = txns.filter(t => t.type === 'expense' && isFixedTxn(t));
+  } else if (state.filters.fixed === 'variable') {
+    txns = txns.filter(t => t.type === 'expense' && !isFixedTxn(t));
+  }
   if (search) {
     const q = search.toLowerCase();
     txns = txns.filter(t => {
@@ -2498,8 +2820,11 @@ function renderTransactions() {
       const mainName = main?.cat?.name || '?';
       const mainColor = main?.cat?.color || '#868E96';
       const sub = main ? findSubCat(main.type, t.mainCat, t.subCat) : null;
+      const fixedBadge = (t.type === 'expense' && isFixedTxn(t))
+        ? `<span title="${t.recurringId ? '반복 거래 (자동 고정)' : '고정지출'}" style="display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:1px 6px;border-radius:4px;background:#E0F2FE;color:#075985;font-weight:600;margin-left:6px;vertical-align:middle;">📌 고정</span>`
+        : '';
       categoryCell = `<div style="line-height:1.3;">
-        <div><span class="cat-chip"><span class="cat-dot" style="background:${mainColor}"></span>${mainName}</span></div>
+        <div><span class="cat-chip"><span class="cat-dot" style="background:${mainColor}"></span>${mainName}</span>${fixedBadge}</div>
         ${sub ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;margin-left:14px;">└ ${escapeHtml(sub.name)}</div>` : ''}
       </div>`;
     }
@@ -2575,11 +2900,49 @@ window.editTxn = (id) => {
     populateEditSubCat(txn.type, txn.mainCat, txn.subCat);
     populateEditAccountSelect('eAccount', txn.account);
     populateEditMethod(txn.type, txn.method);
+    updateEditFixedUI(txn);
   }
   document.getElementById('eMemo').value = txn.memo || '';
   document.getElementById('eAmount').value = txn.amount.toLocaleString('ko-KR');
   showModal('modalEditTxn');
 };
+
+// 편집 모달의 고정/변동 라디오 UI 갱신
+function updateEditFixedUI(txn) {
+  const field = document.getElementById('eFixedField');
+  if (!field) return;
+  const curType = document.getElementById('eType').value;
+  // 지출만 표시
+  field.style.display = (curType === 'expense') ? '' : 'none';
+  if (curType !== 'expense') return;
+
+  // 반복거래에서 생성된 건 강제 고정 — 라디오 비활성화
+  const isRecurring = !!txn?.recurringId;
+  document.querySelectorAll('input[name="eFixedRadio"]').forEach(r => {
+    r.disabled = isRecurring;
+  });
+
+  // 현재 값에 따라 라디오 선택
+  let selected = 'auto';
+  if (isRecurring) {
+    selected = 'fixed';
+  } else if (txn && typeof txn.fixed === 'boolean') {
+    selected = txn.fixed ? 'fixed' : 'variable';
+  }
+  const radio = document.querySelector(`input[name="eFixedRadio"][value="${selected}"]`);
+  if (radio) radio.checked = true;
+
+  // 힌트 메시지
+  const hint = document.getElementById('eFixedHint');
+  const mainId = document.getElementById('eMainCat').value;
+  const subId = document.getElementById('eSubCat').value;
+  const inferred = inferFixed('expense', mainId, subId);
+  if (isRecurring) {
+    hint.textContent = '🔁 반복 거래에서 생성된 항목은 자동으로 고정지출 처리됩니다.';
+  } else {
+    hint.textContent = `현재 카테고리 자동 추론값: ${inferred ? '📌 고정' : '변동'}`;
+  }
+}
 
 function applyEditTypeUI(type) {
   const isTransfer = type === 'transfer';
@@ -3500,29 +3863,46 @@ function renderSettings() {
   // Category trees
   ['income','saving','expense'].forEach(type => {
     const tree = document.getElementById('catTree-'+type);
-    tree.innerHTML = state.categories[type].map(c => `
+    const isExpense = (type === 'expense');
+    tree.innerHTML = state.categories[type].map(c => {
+      const fixedToggleMain = isExpense
+        ? `<label class="cat-fixed-toggle" title="이 대분류로 입력되는 거래의 기본 고정/변동 설정" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);margin-right:8px;cursor:pointer;">
+            <input type="checkbox" data-fixed-main="${c.id}" ${c.defaultFixed?'checked':''} style="margin:0;">
+            <span>📌 기본 고정</span>
+          </label>`
+        : '';
+      return `
       <div class="cat-group" data-type="${type}" data-id="${c.id}">
         <div class="cat-group-head">
           <span style="width:10px;height:10px;border-radius:3px;background:${c.color};display:inline-block;flex-shrink:0;"></span>
           <input value="${escapeHtml(c.name)}" data-rename-main="${c.id}">
+          ${fixedToggleMain}
           <button class="icon-btn danger" onclick="deleteMainCat('${type}','${c.id}')" title="대분류 삭제">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>
         <div class="sub-list">
-          ${c.subs.map(s => `
+          ${c.subs.map(s => {
+            const fixedToggleSub = isExpense
+              ? `<label title="대분류 기본값을 덮어쓰는 소분류별 설정" style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text-tertiary);margin-right:6px;cursor:pointer;">
+                  <input type="checkbox" data-fixed-sub="${c.id}|${s.id}" ${s.defaultFixed===true?'checked':''} ${s.defaultFixed===false?'data-explicit-var="1"':''} style="margin:0;">
+                  <span>📌</span>
+                </label>`
+              : '';
+            return `
             <div class="sub-item">
               <span style="color:var(--text-tertiary);font-size:11px;">└</span>
               <input value="${escapeHtml(s.name)}" data-rename-sub="${c.id}|${s.id}">
+              ${fixedToggleSub}
               <button class="icon-btn danger" onclick="deleteSubCat('${type}','${c.id}','${s.id}')">
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </div>
-          `).join('')}
+          `;}).join('')}
           <button class="add-sub" onclick="addSubCat('${type}','${c.id}')">+ 소분류 추가</button>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
   });
 
   // Bind rename
@@ -3534,6 +3914,36 @@ function renderSettings() {
         if (c) { c.name = inp.value.trim() || c.name; break; }
       }
       await saveData(); renderAll();
+    });
+  });
+
+  // 대분류 defaultFixed 토글
+  document.querySelectorAll('[data-fixed-main]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const id = cb.dataset.fixedMain;
+      const cat = findMainCat('expense', id);
+      if (cat) {
+        cat.defaultFixed = cb.checked;
+        await saveData();
+        // 토스트로만 안내, 전체 리렌더는 안 함 (사용자 흐름 유지)
+        toast(`"${cat.name}" 기본값: ${cb.checked ? '📌 고정' : '변동'}`);
+      }
+    });
+  });
+
+  // 소분류 defaultFixed 토글
+  document.querySelectorAll('[data-fixed-sub]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const [mainId, subId] = cb.dataset.fixedSub.split('|');
+      const main = findMainCat('expense', mainId);
+      const sub = main?.subs?.find(s => s.id === subId);
+      if (sub) {
+        // 체크 = true, 미체크면 대분류 기본값 따르도록 속성 제거
+        if (cb.checked) sub.defaultFixed = true;
+        else delete sub.defaultFixed;
+        await saveData();
+        toast(`"${sub.name}" ${cb.checked ? '📌 고정으로 표시' : '대분류 기본값 따름'}`);
+      }
     });
   });
   document.querySelectorAll('[data-rename-sub]').forEach(inp => {
@@ -3771,6 +4181,7 @@ function renderAll() {
     renderOnboardingBanner();
     renderSummary();
     renderDashboardCharts();
+    renderFixedVarCharts();
     renderMethodBreakdown();
     renderTopExpenses();
     renderBudgetTable();
@@ -3846,7 +4257,7 @@ document.getElementById('btnClearBatch').addEventListener('click', () => {
 document.getElementById('btnSaveBatch').addEventListener('click', saveAllBatch);
 
 // Filters
-['fType','fCategory','fAccount','fMethod'].forEach(id => {
+['fType','fCategory','fAccount','fMethod','fFixed'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('change', e => {
@@ -3854,6 +4265,7 @@ document.getElementById('btnSaveBatch').addEventListener('click', saveAllBatch);
     else if (id==='fCategory') state.filters.category = e.target.value;
     else if (id==='fAccount') state.filters.account = e.target.value;
     else if (id==='fMethod') state.filters.method = e.target.value;
+    else if (id==='fFixed') state.filters.fixed = e.target.value;
     renderTransactions();
   });
 });
@@ -4215,10 +4627,20 @@ document.getElementById('eType').addEventListener('change', (e) => {
     populateEditSubCat(t, document.getElementById('eMainCat').value);
     populateEditAccountSelect('eAccount', '');
     populateEditMethod(t, '');
+    // 유형 바뀌면 고정/변동 자동으로 리셋
+    const curTxn = state.transactions.find(x => x.id === state.editingTxnId);
+    updateEditFixedUI(curTxn);
   }
 });
 document.getElementById('eMainCat').addEventListener('change', (e) => {
   populateEditSubCat(document.getElementById('eType').value, e.target.value);
+  // 카테고리 바뀌면 추론값도 바뀌므로 힌트 갱신
+  const curTxn = state.transactions.find(x => x.id === state.editingTxnId);
+  updateEditFixedUI(curTxn);
+});
+document.getElementById('eSubCat').addEventListener('change', () => {
+  const curTxn = state.transactions.find(x => x.id === state.editingTxnId);
+  updateEditFixedUI(curTxn);
 });
 document.getElementById('btnSaveEditTxn').addEventListener('click', async () => {
   const id = state.editingTxnId;
@@ -4271,6 +4693,24 @@ document.getElementById('btnSaveEditTxn').addEventListener('click', async () => 
     txn.account = document.getElementById('eAccount').value || '';
     txn.fromAccount = ''; txn.toAccount = '';
     txn.method = (newType === 'expense') ? (document.getElementById('eMethod').value || '') : '';
+
+    // 고정/변동 저장 — 지출일 때만 의미 있음. 반복거래는 무조건 fixed:true
+    if (newType === 'expense') {
+      if (txn.recurringId) {
+        txn.fixed = true;
+      } else {
+        const radio = document.querySelector('input[name="eFixedRadio"]:checked');
+        const v = radio?.value || 'auto';
+        if (v === 'auto') {
+          // 자동 추론 = fixed 필드 제거 (isFixedTxn이 추론하도록)
+          delete txn.fixed;
+        } else {
+          txn.fixed = (v === 'fixed');
+        }
+      }
+    } else {
+      txn.fixed = false;
+    }
   }
   txn.date = document.getElementById('eDate').value || txn.date;
   txn.memo = document.getElementById('eMemo').value.trim();
