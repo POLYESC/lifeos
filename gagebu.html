@@ -1114,9 +1114,9 @@ tr:hover .trash-icon,.goal-card:hover .trash-icon{opacity:1;}
     <div class="field"><label>계좌 이름</label>
       <input id="accountName" placeholder="예: KB국민 주거래, 친구에게 빌려준 돈">
     </div>
-    <div class="field"><label id="accountBalanceLabel">현재 잔액 (원)</label>
+    <div class="field"><label id="accountBalanceLabel">2026년 1월 시작 잔액 (원)</label>
       <input id="accountBalance" placeholder="0" inputmode="numeric">
-      <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;" id="accountBalanceHint">자산은 +, 부채는 갚아야 할 금액</div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;" id="accountBalanceHint">2026년 1월 시점 잔액. 이후 월별 잔액은 거래내역으로 자동 누적됩니다.</div>
     </div>
     <div class="field"><label>메모 (선택)</label>
       <input id="accountNote" placeholder="예: 보증금 만기 2027년 3월">
@@ -1326,6 +1326,7 @@ let state = {
   batch: [],
   migratedTransferToSavingV1: false,  // 한 번만 실행되는 마이그레이션 플래그
   migratedBalanceByMonthV1: false,  // 자산/목적통장 단일 balance → balanceByMonth 마이그레이션
+  migratedSingleStartKeyV1: false,  // 자산/목적통장 시작점을 2026-01로 통합
 };
 
 /* ---------- Helpers ---------- */
@@ -1430,6 +1431,7 @@ async function saveData() {
     budgetsByMonth: state.budgetsByMonth,
     migratedTransferToSavingV1: state.migratedTransferToSavingV1,
     migratedBalanceByMonthV1: state.migratedBalanceByMonthV1,
+    migratedSingleStartKeyV1: state.migratedSingleStartKeyV1,
   }));
 }
 async function loadData() {
@@ -1451,6 +1453,7 @@ async function loadData() {
     if (p.budgetsByMonth) state.budgetsByMonth = p.budgetsByMonth;
     if (typeof p.migratedTransferToSavingV1 === 'boolean') state.migratedTransferToSavingV1 = p.migratedTransferToSavingV1;
     if (typeof p.migratedBalanceByMonthV1 === 'boolean') state.migratedBalanceByMonthV1 = p.migratedBalanceByMonthV1;
+    if (typeof p.migratedSingleStartKeyV1 === 'boolean') state.migratedSingleStartKeyV1 = p.migratedSingleStartKeyV1;
 
     // 마이그레이션: 기존 walletBalance(단일값) → walletBalanceByMonth (가장 빠른 거래의 월에 할당)
     if (state.walletBalance > 0 && Object.keys(state.walletBalanceByMonth).length === 0) {
@@ -1559,6 +1562,28 @@ async function loadData() {
       });
       state.migratedBalanceByMonthV1 = true;
       console.log('[gagebu] 자산/목적통장 월별 잔액 마이그레이션 완료');
+    }
+
+    // 마이그레이션 v4: 기존 balanceByMonth가 여러 키 또는 시작점이 아닌 키에 박혀있던 사용자를 위해
+    // 가장 이른 키의 값을 BALANCE_START_KEY로 옮기고 나머지 키 삭제 (단일 시작점 보장)
+    if (!state.migratedSingleStartKeyV1) {
+      state.accounts.forEach(acc => {
+        if (!acc.balanceByMonth) return;
+        const keys = Object.keys(acc.balanceByMonth).sort();
+        if (keys.length === 0) return;
+        // 시작 잔액 = 가장 이른 키 값 (그게 사용자가 가장 처음 박은 값)
+        const startValue = Number(acc.balanceByMonth[keys[0]]) || 0;
+        acc.balanceByMonth = { [BALANCE_START_KEY]: startValue };
+      });
+      state.goals.forEach(g => {
+        if (!g.balanceByMonth) return;
+        const keys = Object.keys(g.balanceByMonth).sort();
+        if (keys.length === 0) return;
+        const startValue = Number(g.balanceByMonth[keys[0]]) || 0;
+        g.balanceByMonth = { [BALANCE_START_KEY]: startValue };
+      });
+      state.migratedSingleStartKeyV1 = true;
+      console.log('[gagebu] 자산/목적통장 시작점(2026-01) 통합 마이그레이션 완료');
     }
   } catch(e){}
 }
@@ -1675,6 +1700,10 @@ function netWorth() { return totalAssets() - totalLiabilities(); }
 // 자산 계좌의 특정 월 잔액 조회 — balanceByMonth에서 targetKey 이하의 가장 가까운 키 값.
 // 없으면 acc.balance를 fallback으로 사용 (마이그레이션 호환성).
 /* ---------- 월별 잔액 (자산/부채) ---------- */
+// 자산/목적통장 시작점 키 — 사용자가 입력하는 시작 잔액은 항상 이 키에 저장됨.
+// 그 이후의 잔액은 거래내역으로 자동 누적되어 동적 계산.
+const BALANCE_START_KEY = '2026-01';
+
 // 거래 t가 자산 계좌 accId에 미치는 영향 (asset이면 +, liability면 반대 부호)
 function accountDelta(t, accId) {
   const acc = state.accounts.find(a => a.id === accId);
@@ -1732,14 +1761,13 @@ function getAccountBalanceForMonth(accId, year, month) {
   return base + accum;
 }
 
-// 사용자가 특정 월의 시작잔액을 직접 입력
+// 사용자가 시작 잔액을 직접 입력. 항상 BALANCE_START_KEY(2026-01)에만 저장하고
+// 기존 다른 키는 모두 삭제 (단일 시작점 보장). 이후 월별 잔액은 거래로 자동 누적.
 function setAccountBalanceForMonth(accId, year, month, value) {
   const acc = state.accounts.find(a => a.id === accId);
   if (!acc) return;
-  if (!acc.balanceByMonth) acc.balanceByMonth = {};
-  const key = monthKey(year, month);
-  acc.balanceByMonth[key] = Number(value) || 0;
-  // 호환성: acc.balance는 "현재 시스템 시점 잔액" 캐시로 유지
+  acc.balanceByMonth = { [BALANCE_START_KEY]: Number(value) || 0 };
+  // 호환성: acc.balance는 현재 시스템 시점 잔액 캐시
   const now = new Date();
   acc.balance = getAccountBalanceForMonth(accId, now.getFullYear(), now.getMonth());
 }
@@ -1784,9 +1812,7 @@ function getGoalBalanceForMonth(goalId, year, month) {
 function setGoalBalanceForMonth(goalId, year, month, value) {
   const g = state.goals.find(x => x.id === goalId);
   if (!g) return;
-  if (!g.balanceByMonth) g.balanceByMonth = {};
-  const key = monthKey(year, month);
-  g.balanceByMonth[key] = Number(value) || 0;
+  g.balanceByMonth = { [BALANCE_START_KEY]: Number(value) || 0 };
   const now = new Date();
   g.balance = getGoalBalanceForMonth(goalId, now.getFullYear(), now.getMonth());
 }
@@ -3580,18 +3606,15 @@ window.editAccount = (id) => {
   const a = findAccount(id);
   if (!a) return;
   state.editingAccountId = id;
-  document.getElementById('accountModalTitle').textContent = `계좌 수정 (${state.viewYear}년 ${state.viewMonth+1}월 기준)`;
-  document.getElementById('accountBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
+  document.getElementById('accountModalTitle').textContent = '계좌 수정';
+  document.getElementById('accountBalanceLabel').textContent = '2026년 1월 시작 잔액 (원)';
+  document.getElementById('accountBalanceHint').textContent = '이 잔액부터 거래내역으로 매월 자동 누적됩니다.';
   fillAccountTypeOptions();
   document.getElementById('accountType').value = a.type;
   document.getElementById('accountName').value = a.name;
-  // 이 월의 시작 잔액이 명시되어 있으면 그 값, 없으면 동적 계산된 잔액
-  const monthKey_ = monthKey(state.viewYear, state.viewMonth);
-  const explicit = (a.balanceByMonth || {})[monthKey_];
-  const bal = (typeof explicit === 'number')
-    ? explicit
-    : getAccountBalanceForMonth(a.id, state.viewYear, state.viewMonth);
-  document.getElementById('accountBalance').value = bal ? bal.toLocaleString('ko-KR') : '';
+  // 시작점 키의 잔액 (없으면 0)
+  const startBal = Number((a.balanceByMonth || {})[BALANCE_START_KEY]) || 0;
+  document.getElementById('accountBalance').value = startBal ? startBal.toLocaleString('ko-KR') : '';
   document.getElementById('accountNote').value = a.note || '';
   showModal('modalAccount');
 };
@@ -3870,17 +3893,13 @@ window.editGoal = (id) => {
   const g = state.goals.find(x => x.id === id);
   if (!g) return;
   editingGoalId = id;
-  document.getElementById('goalModalTitle').textContent = `목적통장 수정 (${state.viewYear}년 ${state.viewMonth+1}월 기준)`;
-  document.getElementById('goalBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
+  document.getElementById('goalModalTitle').textContent = '목적통장 수정';
+  document.getElementById('goalBalanceLabel').textContent = '2026년 1월 시작 잔액 (원)';
   document.getElementById('goalName').value = g.name;
   document.getElementById('goalTarget').value = g.target;
-  // 이 월의 시작 잔액이 명시되어 있으면 그 값, 없으면 동적 계산
-  const monthKey_ = monthKey(state.viewYear, state.viewMonth);
-  const explicit = (g.balanceByMonth || {})[monthKey_];
-  const bal = (typeof explicit === 'number')
-    ? explicit
-    : getGoalBalanceForMonth(g.id, state.viewYear, state.viewMonth);
-  document.getElementById('goalBalance').value = bal || '';
+  // 시작점 키의 잔액 (없으면 0)
+  const startBal = Number((g.balanceByMonth || {})[BALANCE_START_KEY]) || 0;
+  document.getElementById('goalBalance').value = startBal || '';
   document.getElementById('goalNote').value = g.note || '';
   showModal('modalGoal');
 };
@@ -4624,7 +4643,8 @@ document.getElementById('btnSaveWallet').addEventListener('click', async () => {
 document.getElementById('btnAddAccount').addEventListener('click', () => {
   state.editingAccountId = null;
   document.getElementById('accountModalTitle').textContent = '계좌 추가';
-  document.getElementById('accountBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
+  document.getElementById('accountBalanceLabel').textContent = '2026년 1월 시작 잔액 (원)';
+  document.getElementById('accountBalanceHint').textContent = '이 잔액부터 거래내역으로 매월 자동 누적됩니다.';
   fillAccountTypeOptions();
   document.getElementById('accountType').value = 'savings';
   document.getElementById('accountName').value = '';
@@ -4743,7 +4763,7 @@ document.getElementById('btnDeleteRecurring').addEventListener('click', () => {
 document.getElementById('btnAddGoal').addEventListener('click', () => {
   editingGoalId = null;
   document.getElementById('goalModalTitle').textContent = '목적통장 추가';
-  document.getElementById('goalBalanceLabel').textContent = `${state.viewYear}년 ${state.viewMonth+1}월 시작 잔액 (원)`;
+  document.getElementById('goalBalanceLabel').textContent = '2026년 1월 시작 잔액 (원)';
   document.getElementById('goalName').value = '';
   document.getElementById('goalTarget').value = '';
   document.getElementById('goalBalance').value = '';
