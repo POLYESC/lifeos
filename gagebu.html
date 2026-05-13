@@ -3438,14 +3438,12 @@ function renderAccounts() {
 function renderNetWorthChart() {
   const ctx = document.getElementById('netWorthChart');
   if (!ctx) return;
-
-  // 스냅샷이 없으면 현재 시점만이라도 보여주기
-  const snaps = state.netWorthSnapshots || {};
-  const snapKeys = Object.keys(snaps).sort();
   const summaryEl = document.getElementById('netWorthChartSummary');
   const emptyHint = document.getElementById('netWorthEmptyHint');
 
-  if (snapKeys.length === 0) {
+  // 자산/부채가 하나도 없으면 빈 상태
+  const activeAccs = state.accounts.filter(a => !a.archived);
+  if (activeAccs.length === 0) {
     if (netWorthChart) { netWorthChart.destroy(); netWorthChart = null; }
     ctx.style.display = 'none';
     if (emptyHint) emptyHint.style.display = '';
@@ -3456,23 +3454,38 @@ function renderNetWorthChart() {
   ctx.style.display = '';
   if (emptyHint) emptyHint.style.display = 'none';
 
-  // 각 스냅샷에 대해 순자산 = 자산 합 - 부채 합 (계좌 종류 기반)
+  // 시작점 = BALANCE_START_KEY (2026-01)
+  // 끝점 = 현재 시스템 월 또는 viewMonth 중 더 늦은 것 (사용자가 미래 월을 보더라도 거기까지 그려줌)
+  const [sy, sm] = BALANCE_START_KEY.split('-').map(Number);
+  const now = new Date();
+  const sysY = now.getFullYear(), sysM = now.getMonth() + 1;
+  const viewY = state.viewYear, viewM = state.viewMonth + 1;
+  // 더 늦은 것을 끝점으로
+  const useViewEnd = (viewY > sysY) || (viewY === sysY && viewM > sysM);
+  const ey = useViewEnd ? viewY : sysY;
+  const em = useViewEnd ? viewM : sysM;
+
+  // 매월 잔액 동적 계산
   const labels = [];
   const values = [];
-  snapKeys.forEach(key => {
-    const snap = snaps[key];
+  let y = sy, m = sm;
+  let safety = 0;
+  while ((y < ey || (y === ey && m <= em)) && safety < 60) {
     let assets = 0, liabs = 0;
-    Object.entries(snap).forEach(([accId, balance]) => {
-      const acc = state.accounts.find(a => a.id === accId);
-      if (!acc) return;
+    activeAccs.forEach(acc => {
+      const bal = getAccountBalanceForMonth(acc.id, y, m - 1);
       const kind = getAccountType(acc.type)?.kind;
-      if (kind === 'asset') assets += Number(balance) || 0;
-      else if (kind === 'liability') liabs += Number(balance) || 0;
+      if (kind === 'asset') assets += bal;
+      else if (kind === 'liability') liabs += bal;
     });
-    const [y, m] = key.split('-');
-    labels.push(`${parseInt(m)}월`);
+    // 라벨 형식: 같은 연도면 'M월', 연도가 바뀌면 'YY/M' 표시
+    labels.push(y === sy ? `${m}월` : `${String(y).slice(-2)}/${m}`);
     values.push(assets - liabs);
-  });
+
+    m++;
+    if (m > 12) { m = 1; y++; }
+    safety++;
+  }
 
   // 요약: 시작점 대비 변화
   if (summaryEl && values.length > 0) {
@@ -3485,7 +3498,7 @@ function renderNetWorthChart() {
         ${fmtSigned(change)}
       </div>
       <div style="font-size:11px;color:var(--text-tertiary);">
-        ${snapKeys.length}개월간 ${change >= 0 ? '↗' : '↘'} ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%
+        ${values.length}개월간 ${change >= 0 ? '↗' : '↘'} ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%
       </div>
     `;
   }
