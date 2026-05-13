@@ -163,6 +163,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .shop-item .name .priority-mark{margin-right:5px;font-size:10px;}
 .shop-item .desc{font-size:10.5px;color:var(--text-tertiary);margin-top:1px;}
 .shop-item .desc .qty-tag{display:inline-block;background:var(--bg);padding:1px 6px;border-radius:3px;margin-right:4px;}
+.shop-item .desc .price-tag{display:inline-block;background:#FFE5D9;color:#A14000;padding:1px 6px;border-radius:3px;margin-right:4px;font-weight:600;}
 .shop-item .actions{flex-shrink:0;display:flex;gap:4px;opacity:0;transition:opacity 0.15s;}
 .shop-item:hover .actions{opacity:1;}
 .shop-item .icon-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:4px;color:var(--text-tertiary);}
@@ -373,7 +374,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
         <h2 style="font-size:15px;">🛒 육아용품 체크리스트</h2>
         <div style="font-size:11.5px;color:var(--text-tertiary);margin-top:2px;">출산 가방 · 집 준비 · 출산 후 케어</div>
       </div>
-      <button class="btn primary small" id="btnAddShopping">+ 추가</button>
+      <div style="display:flex;gap:6px;">
+        <button class="btn small" id="btnManageShopCats" title="분류 추가/수정/삭제">📂 분류</button>
+        <button class="btn primary small" id="btnAddShopping">+ 추가</button>
+      </div>
     </div>
 
     <!-- 카테고리 진행률 카드 -->
@@ -557,10 +561,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     <div class="field">
       <label>카테고리</label>
       <select id="shoppingCategory">
-        <option value="bag">👜 출산 가방 (병원 갈 때)</option>
-        <option value="home">🏠 집 준비 (출산 전 미리)</option>
-        <option value="after">🤱 출산 후 (산모 회복)</option>
-        <option value="etc">📦 기타</option>
+        <!-- 옵션은 openShoppingModal에서 동적으로 채워짐 -->
       </select>
     </div>
     <div class="field"><label>품목</label><input id="shoppingName" placeholder="예: 산모수첩, 배냇저고리"></div>
@@ -575,11 +576,27 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
         </select>
       </div>
     </div>
-    <div class="field"><label>메모 (선택)</label><input id="shoppingMemo" placeholder="예: 브랜드, 가격, 구매처"></div>
+    <div class="field-row">
+      <div class="field"><label>가격 (원, 선택)</label><input id="shoppingPrice" placeholder="예: 30000" inputmode="numeric"></div>
+      <div class="field"><label>메모 (선택)</label><input id="shoppingMemo" placeholder="예: 브랜드, 구매처"></div>
+    </div>
     <div class="actions">
       <button class="btn danger" id="btnDeleteShopping" style="margin-right:auto;display:none;">삭제</button>
       <button class="btn" onclick="closeModal('modalShopping')">취소</button>
       <button class="btn primary" id="btnSaveShopping">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 육아용품 분류 관리 모달 -->
+<div class="modal-bg" id="modalShopCats">
+  <div class="modal" style="max-width:480px;">
+    <h3>📂 분류 관리</h3>
+    <div style="font-size:11.5px;color:var(--text-tertiary);margin-bottom:10px;">아이콘, 이름, 설명을 수정하거나 분류를 추가/삭제할 수 있어요.</div>
+    <div id="shopCatList" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding:4px 2px;"></div>
+    <button class="btn primary" id="btnAddShopCat" style="width:100%;margin-top:10px;">+ 분류 추가</button>
+    <div class="actions" style="margin-top:14px;">
+      <button class="btn primary" onclick="closeModal('modalShopCats')">완료</button>
     </div>
   </div>
 </div>
@@ -870,6 +887,7 @@ let state = {
   baths: [],         // 목욕
   diapers: [],       // 기저귀: {id, kidId, datetime, type:'pee'|'poo'|'both', color?, memo}
   shopping: [],      // 육아용품: {id, kidId, category, name, qty, priority, checked, memo, addedAt}
+  shoppingCategories: [],  // 육아용품 분류: [{id, icon, label, desc}] — 사용자 편집 가능
   vaccinations: [],  // 예방접종: {id, kidId, vaccineId, scheduledDate, completedDate, hospital, memo}
   visits: [],        // 진료: {id, kidId, date, hospital, doctor, reason, diagnosis, memo}
   pregnancy: [],     // 임신/태교: {id, kidId, date, kind: 'kick'|'checkup'|'diary'|'photo', text, weeks, weight, memo}
@@ -888,6 +906,8 @@ let state = {
 const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
 const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMoney = (n) => '₩' + new Intl.NumberFormat('ko-KR').format(Math.round(Math.abs(Number(n) || 0)));
+const parseNum = (s) => Number(String(s || '').replace(/[^\d.-]/g, '')) || 0;
 
 let toastTimer;
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2500); }
@@ -926,6 +946,7 @@ function save() {
     feedings: state.feedings, sleeps: state.sleeps, temperatures: state.temperatures,
     medications: state.medications, baths: state.baths, diapers: state.diapers,
     shopping: state.shopping,
+    shoppingCategories: state.shoppingCategories,
     vaccinations: state.vaccinations, visits: state.visits, pregnancy: state.pregnancy,
   }));
 }
@@ -945,10 +966,15 @@ function load() {
     if (p.baths) state.baths = p.baths;
     if (p.diapers) state.diapers = p.diapers;
     if (p.shopping) state.shopping = p.shopping;
+    if (p.shoppingCategories) state.shoppingCategories = p.shoppingCategories;
     if (p.vaccinations) state.vaccinations = p.vaccinations;
     if (p.visits) state.visits = p.visits;
     if (p.pregnancy) state.pregnancy = p.pregnancy;
   } catch(e){}
+  // 마이그레이션: 분류 데이터가 비어있으면 기본값으로 시드
+  if (!state.shoppingCategories || state.shoppingCategories.length === 0) {
+    state.shoppingCategories = defaultShoppingCategories();
+  }
 }
 
 function isUnborn(birthDate) {
@@ -1606,12 +1632,19 @@ function renderMilestoneList() {
 }
 
 // ============= 🛒 육아용품 체크리스트 =============
-const SHOPPING_CATS = {
-  bag: { icon: '👜', label: '출산 가방', desc: '병원 갈 때' },
-  home: { icon: '🏠', label: '집 준비', desc: '출산 전 미리' },
-  after: { icon: '🤱', label: '출산 후', desc: '산모 회복' },
-  etc: { icon: '📦', label: '기타', desc: '' },
-};
+// 기본 분류 — 사용자가 추가/수정/삭제 가능
+function defaultShoppingCategories() {
+  return [
+    { id: 'bag',   icon: '👜', label: '출산 가방', desc: '병원 갈 때' },
+    { id: 'home',  icon: '🏠', label: '집 준비',   desc: '출산 전 미리' },
+    { id: 'after', icon: '🤱', label: '출산 후',   desc: '산모 회복' },
+    { id: 'etc',   icon: '📦', label: '기타',     desc: '' },
+  ];
+}
+// 헬퍼: id로 카테고리 찾기
+function getShoppingCat(id) {
+  return (state.shoppingCategories || []).find(c => c.id === id) || { id, icon: '📦', label: id, desc: '' };
+}
 
 // 한국 출산 표준 체크리스트 (60+ 항목)
 const SHOPPING_PRESET = [
@@ -1697,15 +1730,23 @@ function renderShopping() {
   }
   empty.style.display = 'none';
 
-  // 카테고리별 진행률 카드
-  const cats = ['bag', 'home', 'after', 'etc'];
+  // 카테고리별 진행률 카드 (분류 데이터에서 순서대로)
+  const cats = (state.shoppingCategories || []).map(c => c.id);
   const summaries = cats.map(cat => {
     const catItems = items.filter(i => i.category === cat);
     if (catItems.length === 0) return '';
     const done = catItems.filter(i => i.checked).length;
     const total = catItems.length;
     const pct = total > 0 ? Math.round(done / total * 100) : 0;
-    const cinfo = SHOPPING_CATS[cat];
+    const spent = catItems.filter(i => i.checked).reduce((s, i) => s + (Number(i.price) || 0), 0);
+    const planned = catItems.reduce((s, i) => s + (Number(i.price) || 0), 0);
+    const cinfo = getShoppingCat(cat);
+    const priceLine = (spent > 0 || planned > 0)
+      ? `<div class="price-line" style="font-size:11px;color:var(--text-secondary);margin-top:4px;line-height:1.4;">
+           <div>💸 사용 <span style="color:var(--kids);font-weight:600;">${fmtMoney(spent)}</span></div>
+           ${planned > spent ? `<div style="color:var(--text-tertiary);">예상 ${fmtMoney(planned)}</div>` : ''}
+         </div>`
+      : '';
     return `
       <div class="shop-summary-card" data-cat="${cat}">
         <div class="head">
@@ -1714,10 +1755,24 @@ function renderShopping() {
         </div>
         <div class="count"><span class="num">${done}</span><span class="total">/${total}</span></div>
         <div class="bar"><div style="width:${pct}%;"></div></div>
+        ${priceLine}
       </div>
     `;
   }).filter(Boolean).join('');
-  summary.innerHTML = summaries;
+
+  // 전체 합계 (모든 분류 합산)
+  const totalSpent = items.filter(i => i.checked).reduce((s, i) => s + (Number(i.price) || 0), 0);
+  const totalPlanned = items.reduce((s, i) => s + (Number(i.price) || 0), 0);
+  const totalLine = (totalSpent > 0 || totalPlanned > 0)
+    ? `<div style="grid-column:1/-1;padding:10px 14px;background:linear-gradient(135deg,#FFF4ED 0%,#FFE8D6 100%);border:1px solid #FFD1B3;border-radius:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+         <div style="font-size:12px;font-weight:600;color:#A14000;">💰 전체 사용 금액</div>
+         <div style="font-size:15px;font-weight:700;color:#A14000;">
+           ${fmtMoney(totalSpent)}
+           ${totalPlanned > totalSpent ? `<span style="font-size:11px;color:#A14000;opacity:0.6;font-weight:400;margin-left:6px;">/ 예상 ${fmtMoney(totalPlanned)}</span>` : ''}
+         </div>
+       </div>`
+    : '';
+  summary.innerHTML = totalLine + summaries;
 
   // 카테고리 클릭 시 해당 섹션으로 스크롤
   summary.querySelectorAll('.shop-summary-card').forEach(card => {
@@ -1732,9 +1787,10 @@ function renderShopping() {
   cats.forEach(cat => {
     const catItems = items.filter(i => i.category === cat);
     if (catItems.length === 0) return;
-    const cinfo = SHOPPING_CATS[cat];
+    const cinfo = getShoppingCat(cat);
     const done = catItems.filter(i => i.checked).length;
     const total = catItems.length;
+    const spent = catItems.filter(i => i.checked).reduce((s, i) => s + (Number(i.price) || 0), 0);
 
     // 우선순위 정렬 (필수 → 권장 → 선택), 그리고 미체크 먼저
     const priorityOrder = { high: 0, mid: 1, low: 2 };
@@ -1748,7 +1804,7 @@ function renderShopping() {
         <div class="cat-section-head">
           <div class="ttl">${cinfo.icon} ${cinfo.label}</div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <div class="meta">${done}/${total}</div>
+            <div class="meta">${done}/${total}${spent > 0 ? ` · 💸 ${fmtMoney(spent)}` : ''}</div>
             <div class="toggle">▼</div>
           </div>
         </div>
@@ -1757,6 +1813,7 @@ function renderShopping() {
             const priorityMark = item.priority === 'high' ? '🔴' : item.priority === 'low' ? '⚪' : '🟡';
             const desc = [];
             if (item.qty) desc.push(`<span class="qty-tag">${escapeHtml(item.qty)}</span>`);
+            if (item.price) desc.push(`<span class="price-tag">${fmtMoney(item.price)}</span>`);
             if (item.memo) desc.push(escapeHtml(item.memo));
             return `
               <div class="shop-item ${item.checked ? 'checked' : ''}" data-id="${item.id}">
@@ -1809,6 +1866,11 @@ function renderShopping() {
 
 function openShopping(id) {
   state.editingShoppingId = id || null;
+  // 카테고리 셀렉트 옵션 채우기 (사용자가 수정한 분류 반영)
+  const catSel = document.getElementById('shoppingCategory');
+  catSel.innerHTML = (state.shoppingCategories || []).map(c =>
+    `<option value="${c.id}">${c.icon || '📦'} ${escapeHtml(c.label)}${c.desc ? ' (' + escapeHtml(c.desc) + ')' : ''}</option>`
+  ).join('');
   if (id) {
     const item = state.shopping.find(s => s.id === id);
     if (!item) return;
@@ -1817,14 +1879,18 @@ function openShopping(id) {
     document.getElementById('shoppingName').value = item.name;
     document.getElementById('shoppingQty').value = item.qty || '';
     document.getElementById('shoppingPriority').value = item.priority || 'mid';
+    document.getElementById('shoppingPrice').value = item.price ? item.price.toLocaleString('ko-KR') : '';
     document.getElementById('shoppingMemo').value = item.memo || '';
     document.getElementById('btnDeleteShopping').style.display = '';
   } else {
     document.getElementById('shoppingModalTitle').textContent = '육아용품 추가';
-    document.getElementById('shoppingCategory').value = 'bag';
+    // 첫 번째 분류로 기본 선택
+    const firstCat = (state.shoppingCategories || [])[0];
+    document.getElementById('shoppingCategory').value = firstCat ? firstCat.id : '';
     document.getElementById('shoppingName').value = '';
     document.getElementById('shoppingQty').value = '';
     document.getElementById('shoppingPriority').value = 'mid';
+    document.getElementById('shoppingPrice').value = '';
     document.getElementById('shoppingMemo').value = '';
     document.getElementById('btnDeleteShopping').style.display = 'none';
   }
@@ -1832,6 +1898,93 @@ function openShopping(id) {
 }
 
 document.getElementById('btnAddShopping').addEventListener('click', () => openShopping());
+
+// 가격 입력 시 천 단위 콤마 자동
+document.getElementById('shoppingPrice').addEventListener('input', (e) => {
+  const num = parseNum(e.target.value);
+  e.target.value = num ? num.toLocaleString('ko-KR') : '';
+});
+
+// ===== 분류 관리 =====
+function openShopCatsModal() {
+  renderShopCatList();
+  showModal('modalShopCats');
+}
+function renderShopCatList() {
+  const wrap = document.getElementById('shopCatList');
+  const cats = state.shoppingCategories || [];
+  if (cats.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:20px;font-size:12px;">분류가 없습니다. 아래 버튼으로 추가하세요.</div>';
+    return;
+  }
+  wrap.innerHTML = cats.map((c, idx) => {
+    const itemCount = state.shopping.filter(s => s.category === c.id).length;
+    return `
+      <div class="shop-cat-row" data-cat-id="${c.id}" style="display:grid;grid-template-columns:46px 1fr auto;gap:6px;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;align-items:start;">
+        <input type="text" data-field="icon" value="${escapeHtml(c.icon || '')}" maxlength="3" placeholder="📦" style="text-align:center;font-size:18px;padding:8px 0;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <input type="text" data-field="label" value="${escapeHtml(c.label || '')}" placeholder="분류 이름" style="font-size:13px;font-weight:500;padding:6px 8px;">
+          <input type="text" data-field="desc" value="${escapeHtml(c.desc || '')}" placeholder="설명 (선택)" style="font-size:11.5px;color:var(--text-secondary);padding:5px 8px;">
+          <div style="font-size:10.5px;color:var(--text-tertiary);">${itemCount}개 항목</div>
+        </div>
+        <button class="btn danger small" data-action="delete" title="분류 삭제" style="align-self:start;padding:6px 10px;">🗑</button>
+      </div>
+    `;
+  }).join('');
+
+  // 입력 변경 → 즉시 저장
+  wrap.querySelectorAll('.shop-cat-row').forEach(row => {
+    const catId = row.dataset.catId;
+    row.querySelectorAll('input[data-field]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const cat = state.shoppingCategories.find(c => c.id === catId);
+        if (cat) {
+          cat[inp.dataset.field] = inp.value;
+          save();
+        }
+      });
+    });
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteShopCat(catId));
+  });
+}
+function addShopCat() {
+  // 새 분류 추가 — 고유 ID 생성
+  const newId = 'cat_' + uid();
+  state.shoppingCategories.push({ id: newId, icon: '📦', label: '새 분류', desc: '' });
+  save();
+  renderShopCatList();
+  renderShopping();
+}
+function deleteShopCat(catId) {
+  const cat = state.shoppingCategories.find(c => c.id === catId);
+  if (!cat) return;
+  if (state.shoppingCategories.length <= 1) {
+    toast('마지막 분류는 삭제할 수 없습니다');
+    return;
+  }
+  const itemsInCat = state.shopping.filter(s => s.category === catId);
+  const remaining = state.shoppingCategories.filter(c => c.id !== catId);
+  const target = remaining[0]; // 첫 번째 남은 분류
+
+  const confirmMsg = itemsInCat.length > 0
+    ? `"${cat.label}"에 ${itemsInCat.length}개 항목이 있습니다.\n"${target.icon} ${target.label}"로 이동됩니다.`
+    : `"${cat.label}" 분류를 삭제하시겠어요?`;
+
+  confirmModal('분류 삭제', confirmMsg, () => {
+    if (itemsInCat.length > 0) {
+      state.shopping.forEach(s => {
+        if (s.category === catId) s.category = target.id;
+      });
+    }
+    state.shoppingCategories = remaining;
+    save();
+    renderShopCatList();
+    renderShopping();
+    toast('삭제되었습니다');
+  });
+}
+document.getElementById('btnManageShopCats').addEventListener('click', openShopCatsModal);
+document.getElementById('btnAddShopCat').addEventListener('click', addShopCat);
 
 document.getElementById('btnSaveShopping').addEventListener('click', () => {
   const name = document.getElementById('shoppingName').value.trim();
@@ -1841,6 +1994,7 @@ document.getElementById('btnSaveShopping').addEventListener('click', () => {
     name,
     qty: document.getElementById('shoppingQty').value.trim(),
     priority: document.getElementById('shoppingPriority').value,
+    price: parseNum(document.getElementById('shoppingPrice').value),
     memo: document.getElementById('shoppingMemo').value.trim(),
   };
   if (state.editingShoppingId) {
