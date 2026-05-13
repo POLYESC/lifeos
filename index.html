@@ -4410,10 +4410,17 @@ function collectAllContext() {
       const events = getAllEvents();
       const today = localDate(new Date());
       const twoWeeksLater = localDate(new Date(Date.now() + 14*86400000));
+      const twoWeeksAgo = localDate(new Date(Date.now() - 14*86400000));
+      // 다가오는 일정 (오늘 ~ 2주 후)
       ctx.events = events
         .filter(e => e.date >= today && e.date <= twoWeeksLater)
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, 12);
+      // 지난 일정 (2주 전 ~ 어제) — 최근 순
+      ctx.pastEvents = events
+        .filter(e => e.date >= twoWeeksAgo && e.date < today)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 15);
     }
   } catch(e) {}
 
@@ -4422,34 +4429,74 @@ function collectAllContext() {
 
 function summarizeGagebu(data) {
   if (!data) return null;
-  // 데이터 구조 추정: transactions 또는 records 또는 entries
   const trans = data.transactions || data.records || data.entries || data.items || [];
   if (!Array.isArray(trans) || trans.length === 0) return null;
 
-  const today = new Date();
-  const thisMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  // 카테고리 ID → 이름 매핑 빌드 (예: 'e_home' → '주거')
+  const catNameMap = {};
+  const cats = data.categories || {};
+  ['income', 'expense', 'saving'].forEach(type => {
+    (cats[type] || []).forEach(c => {
+      catNameMap[c.id] = c.name;
+      (c.subs || []).forEach(s => {
+        catNameMap[s.id] = s.name;
+      });
+    });
+  });
+  // 목적통장 이름도 (saving + s_goal의 subCat이 goal.id이므로)
+  (data.goals || []).forEach(g => {
+    catNameMap[g.id] = `🎯 ${g.name}`;
+  });
 
-  let income = 0, expense = 0;
-  const byCategory = {};
-  let count = 0;
+  // 최근 6개월 월별 집계
+  const today = new Date();
+  const monthKeys = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    monthKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const byMonth = {};
+  monthKeys.forEach(k => {
+    byMonth[k] = { income: 0, expense: 0, saving: 0, count: 0, byCategory: {} };
+  });
 
   trans.forEach(t => {
     const date = t.date || t.datetime || t.created || '';
-    if (!date.startsWith(thisMonth)) return;
-    count++;
+    if (!date) return;
+    const monthK = date.slice(0, 7);
+    if (!byMonth[monthK]) return;  // 6개월 범위 밖
     const amt = Math.abs(parseFloat(t.amount) || 0);
-    const isIncome = t.type === 'income' || t.kind === 'income' || (t.amount && parseFloat(t.amount) > 0 && t.type !== 'expense');
-    if (isIncome) income += amt;
-    else expense += amt;
-    const cat = t.category || t.cat || '기타';
-    if (cat) byCategory[cat] = (byCategory[cat] || 0) + amt;
+    const type = t.type || 'expense';
+    byMonth[monthK].count++;
+    if (type === 'income') byMonth[monthK].income += amt;
+    else if (type === 'expense') byMonth[monthK].expense += amt;
+    else if (type === 'saving') byMonth[monthK].saving += amt;
+    // 카테고리는 mainCat 또는 (변환된) 이름 사용
+    const catId = t.mainCat || t.category || t.cat;
+    const catName = catNameMap[catId] || catId || '기타';
+    if (type === 'expense' && catId) {
+      byMonth[monthK].byCategory[catName] = (byMonth[monthK].byCategory[catName] || 0) + amt;
+    }
   });
 
-  if (count === 0) return null;
+  // 빈 월 제거
+  const filledMonths = {};
+  Object.entries(byMonth).forEach(([k, v]) => {
+    if (v.count > 0) {
+      // 카테고리 Top 5만
+      v.topCategories = Object.entries(v.byCategory)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      delete v.byCategory;
+      filledMonths[k] = v;
+    }
+  });
+
+  if (Object.keys(filledMonths).length === 0) return null;
 
   return {
-    thisMonth: { income, expense, count },
-    topCategories: Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).slice(0,5),
+    byMonth: filledMonths,
+    monthsCovered: Object.keys(filledMonths).sort(),
   };
 }
 
@@ -4481,18 +4528,40 @@ function summarizeKidsData(data) {
     result.kids.push(info);
   });
 
-  // 육아용품 진행률
+  // 육아용품 진행률 (사용자 정의 분류 + 가격 정보 반영)
   const shopping = data.shopping || [];
+  const shopCats = data.shoppingCategories || [];
   if (shopping.length > 0) {
-    const checked = shopping.filter(s => s.checked).length;
-    const bagItems = shopping.filter(s => s.category === 'bag');
-    const homeItems = shopping.filter(s => s.category === 'home');
+    const totalSpent = shopping.filter(s => s.checked).reduce((a, s) => a + (Number(s.price) || 0), 0);
+    const totalPlanned = shopping.reduce((a, s) => a + (Number(s.price) || 0), 0);
     result.shopping = {
       total: shopping.length,
-      checked,
-      bag: { total: bagItems.length, checked: bagItems.filter(s => s.checked).length },
-      home: { total: homeItems.length, checked: homeItems.filter(s => s.checked).length },
+      checked: shopping.filter(s => s.checked).length,
+      totalSpent,
+      totalPlanned,
+      byCategory: [],  // 분류별 진행률·금액
     };
+    // 사용자 분류 순서대로 (없으면 'bag'/'home'/'after'/'etc' 기본값 추정)
+    const cats = shopCats.length > 0
+      ? shopCats
+      : [
+          { id: 'bag', icon: '👜', label: '출산 가방' },
+          { id: 'home', icon: '🏠', label: '집 준비' },
+          { id: 'after', icon: '🤱', label: '출산 후' },
+          { id: 'etc', icon: '📦', label: '기타' },
+        ];
+    cats.forEach(c => {
+      const items = shopping.filter(s => s.category === c.id);
+      if (items.length === 0) return;
+      const done = items.filter(s => s.checked).length;
+      const spent = items.filter(s => s.checked).reduce((a, s) => a + (Number(s.price) || 0), 0);
+      result.shopping.byCategory.push({
+        name: `${c.icon || ''} ${c.label}`.trim(),
+        total: items.length,
+        done,
+        spent,
+      });
+    });
     result.missingHigh = shopping
       .filter(s => !s.checked && s.priority === 'high')
       .slice(0, 8)
@@ -4576,20 +4645,43 @@ function summarizeTravel(data) {
   const trips = data.trips || [];
   if (trips.length === 0) return null;
   const today = localDate(new Date());
-  const upcoming = trips
-    .filter(t => {
-      const start = t.startDate || t.start_date;
-      return start && start >= today;
-    })
-    .sort((a, b) => (a.startDate || a.start_date).localeCompare(b.startDate || b.start_date))
-    .slice(0, 3);
+
+  // 여행 총 비용 계산
+  const tripCost = (t) => {
+    let total = 0;
+    (t.days || []).forEach(d => {
+      (d.expenses || []).forEach(e => { total += Number(e.amount) || 0; });
+    });
+    return total;
+  };
+  // 여행 상태 분류
+  const upcoming = [], ongoing = [], past = [];
+  trips.forEach(t => {
+    const start = t.startDate || t.start_date;
+    const end = t.endDate || t.end_date;
+    if (!start) return;
+    if (end && end < today) past.push(t);
+    else if (start > today) upcoming.push(t);
+    else ongoing.push(t);
+  });
+  // 정렬: upcoming 빠른순, past 최근순
+  upcoming.sort((a, b) => (a.startDate || a.start_date).localeCompare(b.startDate || b.start_date));
+  past.sort((a, b) => (b.endDate || b.end_date || '').localeCompare(a.endDate || a.end_date || ''));
+
+  const toEntry = (t) => ({
+    title: t.title || t.name || t.destination || '여행',
+    location: t.location || '',
+    start: t.startDate || t.start_date,
+    end: t.endDate || t.end_date,
+    cost: tripCost(t),
+  });
+
   return {
     totalTrips: trips.length,
-    upcoming: upcoming.map(t => ({
-      title: t.title || t.name || t.destination || '여행',
-      start: t.startDate || t.start_date,
-      end: t.endDate || t.end_date,
-    })),
+    totalSpent: trips.reduce((s, t) => s + tripCost(t), 0),
+    upcoming: upcoming.slice(0, 3).map(toEntry),
+    ongoing: ongoing.map(toEntry),
+    past: past.slice(0, 5).map(toEntry),  // 최근 5개
   };
 }
 
@@ -4598,11 +4690,18 @@ function summarizeHome(data) {
   const devices = data.devices || [];
   const scenarios = data.scenarios || [];
   if (devices.length === 0 && scenarios.length === 0) return null;
+  // home.html과 동일한 카테고리 매핑 (변경 시 함께 업데이트)
+  const HOME_CAT_NAMES = {
+    aircon: '에어컨', tv: 'TV', light: '조명', cleaner: '공기청정기',
+    fridge: '냉장고', washer: '세탁기', dryer: '건조기', robot: '로봇청소기',
+    doorlock: '도어락', speaker: '스피커', boiler: '보일러', curtain: '커튼',
+    oven: '오븐', cam: '홈캠', other: '기타',
+  };
   return {
     deviceCount: devices.length,
     devicesByCategory: devices.reduce((acc, d) => {
-      const cat = d.category || '기타';
-      acc[cat] = (acc[cat] || 0) + 1;
+      const catName = HOME_CAT_NAMES[d.category] || d.category || '기타';
+      acc[catName] = (acc[catName] || 0) + 1;
       return acc;
     }, {}),
     scenarios: scenarios.slice(0, 5).map(s => s.name || s.title).filter(Boolean),
@@ -4682,7 +4781,19 @@ ${todayStr}, ${timeStr}
     });
     if (context.kids.shopping) {
       const sh = context.kids.shopping;
-      prompt += `- 육아용품: 전체 ${sh.checked}/${sh.total}, 출산가방 ${sh.bag.checked}/${sh.bag.total}, 집준비 ${sh.home.checked}/${sh.home.total}\n`;
+      prompt += `- 육아용품: 전체 ${sh.checked}/${sh.total}개 체크`;
+      if (sh.totalSpent > 0 || sh.totalPlanned > 0) {
+        prompt += ` · 💰 사용 ${(sh.totalSpent/10000).toFixed(0)}만원`;
+        if (sh.totalPlanned > sh.totalSpent) prompt += ` (예상 ${(sh.totalPlanned/10000).toFixed(0)}만원)`;
+      }
+      prompt += `\n`;
+      if (sh.byCategory && sh.byCategory.length > 0) {
+        sh.byCategory.forEach(c => {
+          prompt += `    · ${c.name}: ${c.done}/${c.total}`;
+          if (c.spent > 0) prompt += ` · ${(c.spent/10000).toFixed(0)}만원`;
+          prompt += `\n`;
+        });
+      }
       if (context.kids.missingHigh && context.kids.missingHigh.length > 0) {
         prompt += `- 미체크 필수 용품: ${context.kids.missingHigh.join(', ')}\n`;
       }
@@ -4721,39 +4832,77 @@ ${todayStr}, ${timeStr}
 
   // 일정
   prompt += `[일정 데이터]\n`;
+  if (context.pastEvents && context.pastEvents.length > 0) {
+    prompt += `지난 2주간 일정 (최근 순):\n`;
+    context.pastEvents.forEach(e => {
+      prompt += `- ${e.date}${e.time ? ' ' + e.time : ''}: ${e.icon || ''} ${e.title}${e.memo ? ' — ' + e.memo : ''}\n`;
+    });
+    prompt += '\n';
+  }
   if (context.events && context.events.length > 0) {
     prompt += `다가오는 2주간 일정:\n`;
-    context.events.slice(0, 10).forEach(e => {
-      prompt += `- ${e.date}${e.time ? ' ' + e.time : ''}: ${e.icon || ''} ${e.title}\n`;
+    context.events.slice(0, 12).forEach(e => {
+      prompt += `- ${e.date}${e.time ? ' ' + e.time : ''}: ${e.icon || ''} ${e.title}${e.memo ? ' — ' + e.memo : ''}\n`;
     });
-  } else {
+  } else if (!context.pastEvents || context.pastEvents.length === 0) {
     prompt += `(등록된 일정 없음 - 사용자가 아직 일정을 추가하지 않았습니다)\n`;
   }
   prompt += '\n';
 
   // 가계부
-  prompt += `[가계부 데이터 (이번 달)]\n`;
-  if (context.gagebu && (context.gagebu.thisMonth.expense > 0 || context.gagebu.thisMonth.income > 0)) {
-    const g = context.gagebu;
-    if (g.thisMonth.expense > 0) {
-      prompt += `- 지출: ${(g.thisMonth.expense / 10000).toFixed(0)}만원`;
-      if (g.thisMonth.income > 0) prompt += ` / 수입: ${(g.thisMonth.income / 10000).toFixed(0)}만원`;
-      prompt += `\n`;
-    }
-    if (g.topCategories.length > 0) {
-      prompt += `- 주요 지출: ${g.topCategories.slice(0,3).map(([cat, amt]) => `${cat} ${(amt/10000).toFixed(0)}만원`).join(', ')}\n`;
-    }
+  // 가계부 — 최근 6개월 월별 데이터
+  prompt += `[가계부 데이터 (최근 6개월, 월별)]\n`;
+  if (context.gagebu && context.gagebu.byMonth) {
+    const months = context.gagebu.monthsCovered;  // 시간순
+    months.forEach(k => {
+      const m = context.gagebu.byMonth[k];
+      const [y, mm] = k.split('-');
+      const monthLabel = `${y}년 ${parseInt(mm)}월`;
+      const parts = [];
+      if (m.income > 0) parts.push(`수입 ${(m.income/10000).toFixed(0)}만원`);
+      if (m.expense > 0) parts.push(`지출 ${(m.expense/10000).toFixed(0)}만원`);
+      if (m.saving > 0) parts.push(`저축 ${(m.saving/10000).toFixed(0)}만원`);
+      prompt += `- ${monthLabel}: ${parts.join(' / ')} (거래 ${m.count}건)\n`;
+      if (m.topCategories && m.topCategories.length > 0) {
+        prompt += `    주요 지출: ${m.topCategories.slice(0,5).map(([cat, amt]) => `${cat} ${(amt/10000).toFixed(0)}만원`).join(', ')}\n`;
+      }
+    });
   } else {
-    prompt += `(이번 달 등록된 가계부 항목 없음)\n`;
+    prompt += `(최근 6개월 등록된 가계부 항목 없음)\n`;
   }
   prompt += '\n';
 
   // 여행
-  if (context.travel && context.travel.upcoming.length > 0) {
-    prompt += `[다가오는 여행]\n`;
-    context.travel.upcoming.forEach(t => {
-      prompt += `- ${t.start}~${t.end}: ${t.title}\n`;
-    });
+  if (context.travel) {
+    const tv = context.travel;
+    prompt += `[여행]\n`;
+    prompt += `- 총 ${tv.totalTrips}회`;
+    if (tv.totalSpent > 0) prompt += ` · 누적 비용 ${(tv.totalSpent/10000).toFixed(0)}만원`;
+    prompt += `\n`;
+    if (tv.ongoing && tv.ongoing.length > 0) {
+      prompt += `- 진행 중:\n`;
+      tv.ongoing.forEach(t => {
+        prompt += `    · ${t.start}~${t.end} ${t.title}${t.location ? ' (' + t.location + ')' : ''}`;
+        if (t.cost > 0) prompt += ` · 비용 ${(t.cost/10000).toFixed(0)}만원`;
+        prompt += `\n`;
+      });
+    }
+    if (tv.upcoming && tv.upcoming.length > 0) {
+      prompt += `- 다가오는 여행:\n`;
+      tv.upcoming.forEach(t => {
+        prompt += `    · ${t.start}~${t.end} ${t.title}${t.location ? ' (' + t.location + ')' : ''}`;
+        if (t.cost > 0) prompt += ` · 비용 ${(t.cost/10000).toFixed(0)}만원`;
+        prompt += `\n`;
+      });
+    }
+    if (tv.past && tv.past.length > 0) {
+      prompt += `- 다녀온 여행 (최근 ${tv.past.length}개):\n`;
+      tv.past.forEach(t => {
+        prompt += `    · ${t.start}~${t.end} ${t.title}${t.location ? ' (' + t.location + ')' : ''}`;
+        if (t.cost > 0) prompt += ` · ${(t.cost/10000).toFixed(0)}만원`;
+        prompt += `\n`;
+      });
+    }
     prompt += '\n';
   }
 
