@@ -626,6 +626,16 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 const STORAGE_KEY = 'lifeos-health-v1';
 const API_KEYS_STORAGE = 'lifeos-api-keys';
 
+// ---------- Local Date Helper ----------
+// toISOString()은 UTC 기준이라 한국 새벽에 전날로 나옴. 로컬 타임존 기준으로 YYYY-MM-DD 반환.
+const localDate = (d) => {
+  const dt = d instanceof Date ? d : (d != null ? new Date(d) : new Date());
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ===== 운동 칼로리 추정 (체중 60kg 기준 분당 kcal) =====
 const EXERCISE_LIBRARY = {
   '산책': { icon: '🚶', perMin: 3.5 },
@@ -652,8 +662,8 @@ let state = {
     weightTargetDate: null,
     weeklyExerciseMin: null,
   },
-  currentDate: new Date().toISOString().slice(0, 10),
-  currentExDate: new Date().toISOString().slice(0, 10),
+  currentDate: localDate(new Date()),
+  currentExDate: localDate(new Date()),
   editingMealId: null,
   editingExerciseId: null,
   weightChart: null,
@@ -662,7 +672,7 @@ let state = {
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2,5);
 const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => localDate(new Date());
 const nowTimeStr = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -1127,8 +1137,8 @@ function renderMeals() {
 function fmtDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   const today = todayStr();
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const yesterday = localDate(new Date(Date.now() - 86400000));
+  const tomorrow = localDate(new Date(Date.now() + 86400000));
   if (dateStr === today) return '오늘';
   if (dateStr === yesterday) return '어제';
   if (dateStr === tomorrow) return '내일';
@@ -1141,13 +1151,13 @@ function fmtDate(dateStr) {
 function changeDate(deltaDays) {
   const d = new Date(state.currentDate + 'T00:00:00');
   d.setDate(d.getDate() + deltaDays);
-  state.currentDate = d.toISOString().slice(0, 10);
+  state.currentDate = localDate(d);
   renderAll();
 }
 function changeExDate(deltaDays) {
   const d = new Date(state.currentExDate + 'T00:00:00');
   d.setDate(d.getDate() + deltaDays);
-  state.currentExDate = d.toISOString().slice(0, 10);
+  state.currentExDate = localDate(d);
   renderExercises();
 }
 
@@ -1402,7 +1412,7 @@ function drawExerciseChart() {
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = localDate(d);
     const minutes = state.exercises.filter(e => e.date === dateStr).reduce((s, e) => s + (e.minutes || 0), 0);
     days.push({
       date: dateStr,

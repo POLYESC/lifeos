@@ -1933,6 +1933,17 @@ body {
 </div>
 
 <script>
+// ---------- Local Date Helper ----------
+// new Date().toISOString()은 UTC 기준이라 한국 새벽에 전날로 나옴.
+// localDate는 사용자 브라우저의 로컬 타임존 기준으로 YYYY-MM-DD 반환.
+const localDate = (d) => {
+  const dt = d instanceof Date ? d : (d != null ? new Date(d) : new Date());
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ---------- Date Greeting ----------
 const now = new Date();
 const hour = now.getHours();
@@ -2020,7 +2031,7 @@ function loadTravelStats() {
       document.getElementById('statTravel').innerHTML = '아직 등록된 여행이 없어요';
       return;
     }
-    const today = now.toISOString().slice(0, 10);
+    const today = localDate(now);
     const upcoming = trips.filter(t => t.startDate && t.startDate > today).length;
     const past = trips.filter(t => t.endDate && t.endDate < today).length;
     const ongoing = trips.length - upcoming - past;
@@ -2094,7 +2105,7 @@ function loadHealthStats() {
       return;
     }
     const data = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate(new Date());
     const meals = data.meals || [];
     const weights = data.weights || [];
     const exercises = data.exercises || [];
@@ -2247,7 +2258,7 @@ function exportAllData() {
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const dateStr = localDate(new Date());
   a.href = url;
   a.download = `lifeos-backup-${dateStr}.json`;
   document.body.appendChild(a);
@@ -2860,7 +2871,7 @@ const calState = {
   viewYear: new Date().getFullYear(),
   viewMonth: new Date().getMonth(), // 0-11
   // 선택된 날짜
-  selectedDate: new Date().toISOString().slice(0, 10),
+  selectedDate: localDate(new Date()),
   // 편집 중인 일정 ID
   editingId: null,
   // 선택된 아이콘
@@ -3029,7 +3040,7 @@ function getAutoEvents() {
       const visits = data.visits || [];
       visits.forEach(v => {
         if (!v.date) return;
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localDate(new Date());
         if (v.date < today) return; // 과거 진료는 제외
         const kid = kids.find(k => k.id === v.kidId);
         const kidName = kid?.name || '';
@@ -3097,7 +3108,7 @@ function getEventsByDate(dateStr) {
 function renderCalendar() {
   const { viewYear, viewMonth } = calState;
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = localDate(today);
 
   // 월 라벨
   document.getElementById('calMonthLabel').textContent = `${viewYear}년 ${viewMonth + 1}월`;
@@ -3218,7 +3229,7 @@ function getSourceColor(source) {
 // 선택된 날짜의 일정 표시
 function renderDayDetail() {
   const date = calState.selectedDate;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(new Date());
 
   // 날짜 라벨
   const d = new Date(date + 'T00:00:00');
@@ -3447,7 +3458,7 @@ document.getElementById('naturalAnalyzeBtn').addEventListener('click', async () 
 
   try {
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = localDate(today);
     const dayName = ['일','월','화','수','목','금','토'][today.getDay()];
 
     const prompt = `다음 한국어 자연어 일정을 분석해서 JSON으로만 답해주세요. 마크다운 코드블록이나 다른 설명 없이 순수 JSON만 출력하세요.
@@ -4041,8 +4052,8 @@ window.addEventListener('load', async () => {
 // 오늘/내일 일정 배너 표시
 function renderNotifBanner() {
   const banner = document.getElementById('notifBanner');
-  const today = new Date().toISOString().slice(0, 10);
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const today = localDate(new Date());
+  const tomorrow = localDate(new Date(Date.now() + 86400000));
 
   // 오늘 이미 닫았으면 숨기기
   const state = loadNotifState();
@@ -4090,7 +4101,7 @@ function checkUpcomingEvents() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  const today = localDate(now);
   const events = getEventsByDate(today).filter(e => e.time);
 
   events.forEach(e => {
@@ -4143,7 +4154,7 @@ document.getElementById('calToday').addEventListener('click', () => {
   const t = new Date();
   calState.viewYear = t.getFullYear();
   calState.viewMonth = t.getMonth();
-  calState.selectedDate = t.toISOString().slice(0, 10);
+  calState.selectedDate = localDate(t);
   renderCalendar();
 });
 
@@ -4397,8 +4408,8 @@ function collectAllContext() {
   try {
     if (typeof getAllEvents === 'function') {
       const events = getAllEvents();
-      const today = new Date().toISOString().slice(0, 10);
-      const twoWeeksLater = new Date(Date.now() + 14*86400000).toISOString().slice(0, 10);
+      const today = localDate(new Date());
+      const twoWeeksLater = localDate(new Date(Date.now() + 14*86400000));
       ctx.events = events
         .filter(e => e.date >= today && e.date <= twoWeeksLater)
         .sort((a, b) => a.date.localeCompare(b.date))
@@ -4526,7 +4537,7 @@ function summarizeKidsData(data) {
 
 function summarizeHealth(data) {
   if (!data) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(new Date());
   const meals = data.meals || [];
   const weights = data.weights || [];
   const exercises = data.exercises || [];
@@ -4543,7 +4554,7 @@ function summarizeHealth(data) {
   const todayExCal = todayEx.reduce((s, e) => s + (e.calories || 0), 0);
 
   // 이번 주 평균
-  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().slice(0, 10);
+  const weekAgo = localDate(new Date(Date.now() - 7*86400000));
   const weekMeals = meals.filter(m => m.date >= weekAgo && m.date <= today);
   const weekDays = new Set(weekMeals.map(m => m.date)).size || 1;
   const weekAvgCal = Math.round(weekMeals.reduce((s, m) => s + (m.totalCal || 0), 0) / weekDays);
@@ -4564,7 +4575,7 @@ function summarizeTravel(data) {
   if (!data) return null;
   const trips = data.trips || [];
   if (trips.length === 0) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate(new Date());
   const upcoming = trips
     .filter(t => {
       const start = t.startDate || t.start_date;

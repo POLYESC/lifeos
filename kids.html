@@ -147,8 +147,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .cat-section-head .toggle{font-size:11px;color:var(--text-tertiary);transition:transform 0.2s;}
 .cat-section.collapsed .toggle{transform:rotate(-90deg);}
 .cat-section.collapsed .cat-items{display:none;}
-.cat-items{padding:6px;}
-.shop-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;}
+.cat-items{padding:6px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+@media (max-width:640px){.cat-items{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:380px){.cat-items{grid-template-columns:1fr;}}
+.shop-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.15s;border:1px solid var(--border);background:#fff;min-width:0;}
 .shop-item:hover{background:var(--bg);}
 .shop-item.checked{opacity:0.55;}
 .shop-item.checked .name{text-decoration:line-through;}
